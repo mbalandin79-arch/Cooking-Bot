@@ -11,29 +11,36 @@ namespace CookingBot
 {
     internal class UpdateHandler : IUpdateHandler, IUserService
     {
-        //private readonly IUpdateHandler _updateHandler;
+        private readonly IUserService _userService;
         public List<ToDoItem> Tasks = new List<ToDoItem>();
-        public ToDoUser someUser = null;
+        public ToDoUser someUser = null; // потом убрать
         public int maxTask = 0;
         public int maxLengthTask = 0;
         string userName = string.Empty;
         string str;
 
-        //public UpdateHandler(UserService userService)
-        //{
-        //    _updateHandler = (IUpdateHandler?)userService;
-        //}
+        public UpdateHandler()
+        {
+
+        }
+
+        public UpdateHandler(IUserService userService)
+        {
+            _userService = (IUserService?)userService;
+        }
 
         public void HandleUpdateAsync(ITelegramBotClient telegramBotClient, Update update)
         {
             try
             {
+                ToDoUser _someUser = new ToDoUser(update.Message.From.Id, update.Message.From.Username!);
                 Greeting(telegramBotClient, update);
 
                 do
                 {
                     try
                     {
+                        Console.Clear();
                         telegramBotClient.SendMessage(update.Message.Chat, " Для начала введите максимально допустимое количество задач в диапазоне от 1 до 100: ");
                         str = Console.ReadLine();
                         ValidateString(str);
@@ -51,6 +58,7 @@ namespace CookingBot
                 {
                     try
                     {
+                        Console.Clear();
                         telegramBotClient.SendMessage(update.Message.Chat, " А теперь введите максимально допустимую длину задачи в диапазоне от 1 до 100: ");
                         str = Console.ReadLine();
                         ValidateString(str);
@@ -62,7 +70,7 @@ namespace CookingBot
                     }
                 } while (maxLengthTask <= 0);
 
-                Work(ref someUser);
+                Work(telegramBotClient, update);
 
                 Console.ReadLine();
             }
@@ -102,7 +110,7 @@ namespace CookingBot
             return answ;
         }
 
-        private void Info()
+        private void Info(ITelegramBotClient telegramBotClient, Update update)
         {
             string createDate = " Created 21.05.2026    ";
 
@@ -112,30 +120,31 @@ namespace CookingBot
             AssemblyName assemblyName = assembly.GetName();
             Version version = assemblyName.Version;
 
-            Console.Write(createDate);
-            Console.Write("The Version used ");
-            Console.WriteLine(version);
-            Console.WriteLine();
+            telegramBotClient.SendMessage(update.Message.Chat, $"{createDate} The Version used {version}");
         }
 
-        private void Help(ToDoUser someUser)
+        private void Help(ITelegramBotClient telegramBotClient, Update update)
         {
             StringBuilder str = new StringBuilder("\n"); ;
             str.AppendLine(" Вам доступны следующие команды:");
             str.AppendLine(" \"/start\" - используется для начала работы");
             str.AppendLine(" \"/help\" - отображает краткую информацию как пользоваться Ботом, также выводит список доступных команд во время работы");
             str.AppendLine(" \"/info\" - предоставляет информацию о версии программы и дате её создания");
-            str.AppendLine(" \"/addtask\" - позволяет добавить задачу");
-            str.AppendLine(" \"/showtasks\" - отображает все активные задачи");
-            str.AppendLine(" \"/showalltasks\" - отображает все доступные задачи");
-            str.AppendLine(" \"/removetask\" - позволяет удалить доступную задачу");
-            str.AppendLine(" \"/completetask Идентификатор\" - позволяет изменить состояние задачи с \"активная\" на \"завершенная\",\n между командой и Идентификатором обязательно должен быть пробел");
+            if (_userService.GetUser(update.Message.From.Id) != null)
+            {
+                str.AppendLine(" \"/addtask\" - позволяет добавить задачу");
+                str.AppendLine(" \"/showtasks\" - отображает все активные задачи");
+                str.AppendLine(" \"/showalltasks\" - отображает все доступные задачи");
+                str.AppendLine(" \"/removetask\" - позволяет удалить доступную задачу");
+                str.AppendLine(" \"/completetask Идентификатор\" - позволяет изменить состояние задачи с \"активная\" на \"завершенная\",\n между командой и Идентификатором обязательно должен быть пробел");
+            }
             str.AppendLine(" \"/exit\" - завершает работу Бота\n");
-            Console.WriteLine(str.ToString());
+            telegramBotClient.SendMessage(update.Message.Chat, str.ToString());
         }
 
         private void Greeting(ITelegramBotClient telegramBotClient, Update update)
         {
+            Console.Clear();
             StringBuilder str = new StringBuilder("\n");
             str.AppendLine(" Приветствую Вас в проекте \"Кулинарный бот\"\n");
             str.AppendLine(" Бот поддерживает следующие команды при старте:");
@@ -155,47 +164,24 @@ namespace CookingBot
             str.AppendLine(" Давайте попробуем?");
             str.Append(" Для продолжения нажмите Enter");
             telegramBotClient.SendMessage(update.Message.Chat, str.ToString());
+            Console.ReadLine();
         }
 
-        private void MyNameIs(ref ToDoUser someUser)
+        private void MyNameIs(ITelegramBotClient telegramBotClient, Update update)
         {
             Console.Clear();
-
-            if (someUser != null)
+            if (GetUser(update.Message.From.Id) == null)
             {
-                Console.ForegroundColor = ConsoleColor.DarkYellow;
-
-                Console.Write(someUser.TelegramUserName);
-
-                Console.ResetColor();
-
-                Console.WriteLine(", Бот уже запущен\n");
+                RegisterUser(update.Message.From.Id, update.Message.From.Username);
+                telegramBotClient.SendMessage(update.Message.Chat, " Зарегистрирован новый Пользователь");
             }
             else
             {
-                string str = string.Empty;
-
-                Console.Write(" Напишите, как я могу к вам обращаться: ");
-
-                do
-                {
-                    str = Console.ReadLine();
-                }
-                while (string.IsNullOrWhiteSpace(str));
-
-                someUser = new ToDoUser(0123456789, str);
-
-                Console.WriteLine();
-
-                Console.ForegroundColor = ConsoleColor.DarkYellow;
-                Console.Write(someUser.TelegramUserName);
-                Console.ResetColor();
-
-                Console.WriteLine(", приятно познакомиться\n");
+                telegramBotClient.SendMessage(update.Message.Chat, $" {GetUser(update.Message.From.Id).TelegramUserName} Добро пожаловать");
             }
         }
 
-        private void Work(ref ToDoUser someUser)
+        private void Work(ITelegramBotClient telegramBotClient, Update update)
         {
             string command = string.Empty;
             string inputStr = string.Empty;
@@ -204,13 +190,7 @@ namespace CookingBot
             {
                 if (string.IsNullOrWhiteSpace(command))
                 {
-                    if (someUser != null)
-                    {
-                        Console.ForegroundColor = ConsoleColor.DarkYellow;
-                        Console.Write(someUser.TelegramUserName);
-                        Console.ResetColor();
-                    }
-                    Console.Write(" Введите команду: ");
+                    telegramBotClient.SendMessage(update.Message.Chat, $"{update.Message.From.Username} Введите команду: ");
                     inputStr = Console.ReadLine().ToLower();
                     command = inputStr.Split(' ')[0];
                 }
@@ -218,18 +198,15 @@ namespace CookingBot
                 switch (command)
                 {
                     case "/start":
-                        MyNameIs(ref someUser);
-
+                        MyNameIs(telegramBotClient, update);
                         command = string.Empty;
                         break;
                     case "/help":
-                        Help(someUser);
-
+                        Help(telegramBotClient, update);
                         command = string.Empty;
                         break;
                     case "/info":
-                        Info();
-
+                        Info(telegramBotClient, update);
                         command = string.Empty;
                         break;
                     case "/addtask":
@@ -261,13 +238,11 @@ namespace CookingBot
                         Environment.Exit(0);
                         break;
                     default:
-                        Console.WriteLine(" Бот не знает такой команды либо эта команда недоступна");
-                        Console.WriteLine(" Для просмотра доступных команд введите \"/help\"");
-
+                        telegramBotClient.SendMessage(update.Message.Chat, " Бот не знает такой команды либо эта команда недоступна\n Для просмотра доступных команд введите \"/help\"");
                         command = string.Empty;
                         break;
                 }
-            } 
+            }
             while (string.IsNullOrWhiteSpace(command));
         }
 
@@ -459,12 +434,12 @@ namespace CookingBot
 
         public ToDoUser RegisterUser(long telegramUserId, string telegramUserName)
         {
-            throw new NotImplementedException();
+            return _userService.RegisterUser(telegramUserId, telegramUserName);
         }
 
         public ToDoUser? GetUser(long telegramUserId)
         {
-            throw new NotImplementedException();
+            return _userService.GetUser(telegramUserId);
         }
     }
 }

@@ -12,8 +12,7 @@ namespace CookingBot
             try
             {
                 UserService userService = new UserService();
-                UpdateHandler handler = new UpdateHandler();
-                //UpdateHandler handler = new UpdateHandler(userService);
+                UpdateHandler handler = new UpdateHandler(userService);
                 ConsoleBotClient botClient = new ConsoleBotClient();
                 botClient.StartReceiving(handler);
             }

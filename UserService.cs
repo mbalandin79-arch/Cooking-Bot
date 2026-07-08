@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,22 +9,22 @@ namespace CookingBot
 {
     internal class UserService : IUserService
     {
-        private ObservableCollection<ToDoUser> oc_Users = new ObservableCollection<ToDoUser>();
+        private ConcurrentDictionary<long, ToDoUser> _dictUsers = new ConcurrentDictionary<long, ToDoUser>();
 
         public ToDoUser? GetUser(long telegramUserId) // поиск Пользователя в БД и возврат всей записи пользователя либо NULL
         {
-            foreach (var curr in oc_Users)
+            foreach (var curr in _dictUsers)
             {
-                if (curr.TelegramUserId == telegramUserId)
-                    return curr;
+                if (curr.Value.TelegramUserId == telegramUserId)
+                    return curr.Value;
             }
             return null;
         }
 
         public ToDoUser RegisterUser(long telegramUserId, string telegramUserName)
         {
-            oc_Users.Add(new ToDoUser(telegramUserId, telegramUserName));
-            var answ = oc_Users.Where(w => w.TelegramUserId == telegramUserId).First();
+            _dictUsers[telegramUserId] = new ToDoUser(telegramUserId, telegramUserName);
+            var answ = _dictUsers.Values.Where(w => w.TelegramUserId == telegramUserId).First();
             return answ;
         }
     }

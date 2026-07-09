@@ -15,11 +15,11 @@ namespace CookingBot
         }
 
         public Guid Id { get; }
-        ToDoUser User { get; }
+        public ToDoUser User { get; }
         public string Name { get; }
         public DateTime CreatedAt { get; set; }
         public ToDoItemState State { get; set; }
-        DateTime? StateCangedAt { get; }
+        public DateTime? StateCangedAt { get; }
 
         public ToDoItem(ToDoUser user, string name)
         {

@@ -11,8 +11,9 @@ namespace CookingBot
         {
             try
             {
+                ToDoService toDoService = new ToDoService();
                 UserService userService = new UserService();
-                UpdateHandler handler = new UpdateHandler(userService);
+                UpdateHandler handler = new UpdateHandler(userService, toDoService);
                 ConsoleBotClient botClient = new ConsoleBotClient();
                 botClient.StartReceiving(handler);
             }

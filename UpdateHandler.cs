@@ -9,9 +9,10 @@ using Otus.ToDoList.ConsoleBot.Types;
 
 namespace CookingBot
 {
-    internal class UpdateHandler : IUpdateHandler, IUserService
+    internal class UpdateHandler : IUpdateHandler
     {
         private readonly IUserService _userService;
+        private readonly IToDoService _todoService;
         public List<ToDoItem> Tasks = new List<ToDoItem>();
         public ToDoUser someUser = null; // потом убрать
         public int maxTask = 0;
@@ -24,9 +25,10 @@ namespace CookingBot
 
         }
 
-        public UpdateHandler(IUserService userService)
+        public UpdateHandler(IUserService userService, IToDoService todoService)
         {
             _userService = (IUserService?)userService;
+            _todoService = (IToDoService?)todoService;
         }
 
         public void HandleUpdateAsync(ITelegramBotClient telegramBotClient, Update update)
@@ -132,7 +134,7 @@ namespace CookingBot
             str.AppendLine(" \"/info\" - предоставляет информацию о версии программы и дате её создания");
             if (_userService.GetUser(update.Message.From.Id) != null)
             {
-                str.AppendLine(" \"/addtask\" - позволяет добавить задачу");
+                str.AppendLine(" \"/addtask Задача\" - позволяет добавить Задачу,\n между командой и Задачей обязательно должен быть пробел");
                 str.AppendLine(" \"/showtasks\" - отображает все активные задачи");
                 str.AppendLine(" \"/showalltasks\" - отображает все доступные задачи");
                 str.AppendLine(" \"/removetask\" - позволяет удалить доступную задачу");
@@ -151,7 +153,7 @@ namespace CookingBot
             str.AppendLine(" \"/start\" - используется для начала работы");
             str.AppendLine(" \"/help\" - отображает краткую информацию как пользоваться Ботом, также выводит список доступных команд во время работы");
             str.AppendLine(" \"/info\" - предоставляет информацию о версии программы и дате её создания");
-            str.AppendLine(" \"/addtask\" - позволяет добавить задачу");
+            str.AppendLine(" \"/addtask Задача\" - позволяет добавить Задачу,\n между командой и Задачей обязательно должен быть пробел");
             str.AppendLine(" \"/showtasks\" - отображает все доступные задачи");
             str.AppendLine(" \"/showalltasks\" - отображает все доступные задачи");
             str.AppendLine(" \"/removetask\" - позволяет удалить доступную задачу");
@@ -170,14 +172,14 @@ namespace CookingBot
         private void MyNameIs(ITelegramBotClient telegramBotClient, Update update)
         {
             Console.Clear();
-            if (GetUser(update.Message.From.Id) == null)
+            if (_userService.GetUser(update.Message.From.Id) == null)
             {
-                RegisterUser(update.Message.From.Id, update.Message.From.Username);
+                _userService.RegisterUser(update.Message.From.Id, update.Message.From.Username);
                 telegramBotClient.SendMessage(update.Message.Chat, " Зарегистрирован новый Пользователь");
             }
             else
             {
-                telegramBotClient.SendMessage(update.Message.Chat, $" {GetUser(update.Message.From.Id).TelegramUserName} Добро пожаловать");
+                telegramBotClient.SendMessage(update.Message.Chat, $" {_userService.GetUser(update.Message.From.Id).TelegramUserName} Добро пожаловать");
             }
         }
 
@@ -210,17 +212,16 @@ namespace CookingBot
                         command = string.Empty;
                         break;
                     case "/addtask":
-                        AddTask();
-
+                        AddTask(inputStr, telegramBotClient, update);
                         command = string.Empty;
                         break;
                     case "/showtasks":
-                        ShowTasks();
+                        ShowTasks(telegramBotClient, update);
 
                         command = string.Empty;
                         break;
                     case "/showalltasks":
-                        ShowAllTasks();
+                        ShowAllTasks(telegramBotClient, update);
 
                         command = string.Empty;
                         break;
@@ -291,24 +292,26 @@ namespace CookingBot
             }
         }
 
-        private void ShowAllTasks()
+        private void ShowAllTasks(ITelegramBotClient telegramBotClient, Update update)
         {
+            List<ToDoItem> listAllTasks = _todoService.GetAllByUserId(_userService.GetUser(update.Message.From.Id).UserId).ToList();
+            
             Console.Clear();
 
-            if (Tasks.Count() > 0)
+            if (listAllTasks.Count() > 0)
             {
-                for (int i = 0; i < Tasks.Count(); i++)
+                
+                for (int i = 0; i < listAllTasks.Count(); i++)
                 {
-                    if (Tasks[i].State == ToDoItem.ToDoItemState.Active)
-                        Console.WriteLine("{0}. (Active) {1} - {2} - {3}", i + 1, Tasks[i].Name, Tasks[i].CreatedAt, Tasks[i].Id);
-                    else if (Tasks[i].State == ToDoItem.ToDoItemState.Completed)
-                        Console.WriteLine("{0}. (Complete) {1} - {2} - {3}", i + 1, Tasks[i].Name, Tasks[i].CreatedAt, Tasks[i].Id);
-                }
-                Console.WriteLine();
+                    if (listAllTasks[i].State == ToDoItem.ToDoItemState.Active)
+                        telegramBotClient.SendMessage(update.Message.Chat, $"{i + 1}. (Active) {listAllTasks[i].Name} - {listAllTasks[i].CreatedAt} - {listAllTasks[i].Id}");
+                    else if (listAllTasks[i].State == ToDoItem.ToDoItemState.Completed)
+                        telegramBotClient.SendMessage(update.Message.Chat, $"{i + 1}. (Complete) {listAllTasks[i].Name} - {listAllTasks[i].CreatedAt} - {listAllTasks[i].Id}");
+                }                
             }
             else
             {
-                Console.WriteLine("\n Список задач пуст\n");
+                telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст");
             }
         }
 
@@ -355,7 +358,7 @@ namespace CookingBot
             }
         }
 
-        private void ShowTasks()
+        private void ShowTasks(ITelegramBotClient telegramBotClient, Update update)
         {
             Console.Clear();
 
@@ -364,54 +367,55 @@ namespace CookingBot
                 for (int i = 0; i < Tasks.Count(); i++)
                 {
                     if (Tasks[i].State == ToDoItem.ToDoItemState.Active)
-                        Console.WriteLine("{0}. {1} - {2} - {3}", i + 1, Tasks[i].Name, Tasks[i].CreatedAt, Tasks[i].Id);
-                }
-                Console.WriteLine();
+                        telegramBotClient.SendMessage(update.Message.Chat, $"{i + 1}. {Tasks[i].Name} - {Tasks[i].CreatedAt} - {Tasks[i].Id}");
+                }                
             }
             else
             {
-                Console.WriteLine("\n Список задач пуст\n");
+                telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст");
             }
         }
 
-        private void AddTask()
+        private void AddTask(string inputStr, ITelegramBotClient telegramBotClient, Update update)
         {
             try
             {
-                string str;
+                string newTask = inputStr.Substring(9);                
 
                 Console.Clear();
 
                 if (Tasks.Count() < maxTask)
                 {
-                    do
+                    if (!string.IsNullOrWhiteSpace(newTask))
                     {
-                        Console.Write("\n Пожалуйста, введите описание задачи: ");
-                        str = Console.ReadLine();
-                        if (string.IsNullOrWhiteSpace(str))
-                        {
-                            Console.Write("\n Необходимо ввести текст описания задачи\n");
-                        }
-                        else if (str.Count() > maxLengthTask)
-                        {
-                            throw new TaskLengthLimitException(str.Count(), maxLengthTask);
-                        }
-
-                        if (Tasks.Count() > 0)
-                        {
-                            foreach (var curr in Tasks)
+                        do
+                        {                            
+                            if (newTask.Count() > maxLengthTask)
                             {
-                                if (curr.Name == str)
+                                throw new TaskLengthLimitException(newTask.Count(), maxLengthTask);
+                            }
+
+                            if (Tasks.Count() > 0)
+                            {
+                                foreach (var curr in Tasks)
                                 {
-                                    throw new DuplicateTaskException(str);
+                                    if (curr.Name == newTask)
+                                    {
+                                        throw new DuplicateTaskException(newTask);
+                                    }
                                 }
                             }
                         }
-                    }
-                    while (string.IsNullOrWhiteSpace(str));
-                    Tasks.Add(new ToDoItem(someUser, str));
+                        while (string.IsNullOrWhiteSpace(newTask));
+                        Tasks.Add(new ToDoItem(someUser, newTask));
+                        ToDoItem newToDoItem = _todoService.Add(someUser, newTask);
 
-                    Console.WriteLine("\nЗадача \"{0}\" добавлена.\n", str);
+                        telegramBotClient.SendMessage(update.Message.Chat, $" Задача добавлена:\n Id: {newToDoItem.Id}\n User: {newToDoItem.User}\n Name: {newToDoItem.Name}\n CreatedAt: {newToDoItem.CreatedAt}\n State: {newToDoItem.State}\n StateCangedAt: {newToDoItem.StateCangedAt}");
+                    }
+                    else
+                    {                        
+                        telegramBotClient.SendMessage(update.Message.Chat, " Аргумент для команды \"/addtask\" отсутствует");
+                    }
                 }
                 else
                 {
@@ -420,26 +424,16 @@ namespace CookingBot
             }
             catch (TaskCountLimitException e)
             {
-                Console.WriteLine($"Превышено максимальное количество задач равное {e.TaskCountLimit}");
+                telegramBotClient.SendMessage(update.Message.Chat, $"Превышено максимальное количество задач равное {e.TaskCountLimit}");
             }
             catch (TaskLengthLimitException e)
             {
-                Console.WriteLine($"Длина задачи ‘{e.TaskLength}’ превышает максимально допустимое значение {e.TaskLengthLimit}");
+                telegramBotClient.SendMessage(update.Message.Chat, $"Длина задачи ‘{e.TaskLength}’ превышает максимально допустимое значение {e.TaskLengthLimit}");
             }
             catch (DuplicateTaskException e)
             {
-                Console.WriteLine($"Задача ‘{e.Task}’ уже существует");
+                telegramBotClient.SendMessage(update.Message.Chat, $"Задача ‘{e.Task}’ уже существует");
             }
-        }
-
-        public ToDoUser RegisterUser(long telegramUserId, string telegramUserName)
-        {
-            return _userService.RegisterUser(telegramUserId, telegramUserName);
-        }
-
-        public ToDoUser? GetUser(long telegramUserId)
-        {
-            return _userService.GetUser(telegramUserId);
-        }
+        }        
     }
 }

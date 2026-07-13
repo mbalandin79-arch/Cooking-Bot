@@ -166,6 +166,79 @@ namespace CookingBot
                     case "/info":
                         Info(telegramBotClient, update);
                         command = string.Empty;
+                        break;                    
+                    default:
+                        telegramBotClient.SendMessage(update.Message.Chat, " Бот не знает такой команды либо эта команда недоступна\n Для просмотра доступных команд введите \"/help\"");
+                        command = string.Empty;
+                        break;
+                }
+            }
+            while (string.IsNullOrWhiteSpace(command));
+        }
+
+        private void UserRegistration(ITelegramBotClient telegramBotClient, Update update)
+        {
+            str = string.Empty;
+
+            telegramBotClient.SendMessage(update.Message.Chat, $" Ваше отображаемое Имя \"{update.Message.From.Username}\" ");
+            telegramBotClient.SendMessage(update.Message.Chat, $" Если хотите изменить, введите новое Имя. Если нет, просто нажмите Enter ");
+            str = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(str))
+            {
+                _userService.RegisterUser(update.Message.From.Id, update.Message.From.Username);
+            }
+            else
+            {
+                _userService.RegisterUser(update.Message.From.Id, str);
+            }
+            telegramBotClient.SendMessage(update.Message.Chat, " Зарегистрирован новый Пользователь");
+            telegramBotClient.SendMessage(update.Message.Chat, $" UserId: {_userService.GetUser(update.Message.From.Id).UserId}");
+            telegramBotClient.SendMessage(update.Message.Chat, $" TelegramUserId: {_userService.GetUser(update.Message.From.Id).TelegramUserId}");
+            telegramBotClient.SendMessage(update.Message.Chat, $" TelegramUserName: {_userService.GetUser(update.Message.From.Id).TelegramUserName}");
+            telegramBotClient.SendMessage(update.Message.Chat, $" Registered Date: {_userService.GetUser(update.Message.From.Id).RegisteredAt}");
+            displayName = _userService.GetUser(update.Message.From.Id).TelegramUserName;
+        }
+
+        private void MyNameIs(ITelegramBotClient telegramBotClient, Update update)
+        {
+            Console.Clear();
+
+            if (_userService.GetUser(update.Message.From.Id) == null)
+            {
+                telegramBotClient.SendMessage(update.Message.Chat, " Вы еще не зарегистрированы. Хотите принять участие в проекте \"Кулинарный Бот\"?");
+                telegramBotClient.SendMessage(update.Message.Chat, " Для регистрации введите слово \"yes\" ");
+                str = Console.ReadLine().ToLower();
+                if (str == "yes")
+                {
+                    UserRegistration(telegramBotClient, update);
+                }
+            }
+            else
+            {
+                telegramBotClient.SendMessage(update.Message.Chat, $" {_userService.GetUser(update.Message.From.Id).TelegramUserName} Добро пожаловать");
+            }
+
+            string command = string.Empty;
+            string inputStr = string.Empty;
+
+            do
+            {
+                if (string.IsNullOrWhiteSpace(command))
+                {
+                    telegramBotClient.SendMessage(update.Message.Chat, $"{displayName} Введите команду: ");
+                    inputStr = Console.ReadLine().ToLower();
+                    command = inputStr.Split(' ')[0];
+                }
+
+                switch (command)
+                {
+                    case "/help":
+                        Help(telegramBotClient, update);
+                        command = string.Empty;
+                        break;
+                    case "/info":
+                        Info(telegramBotClient, update);
+                        command = string.Empty;
                         break;
                     case "/addtask":
                         AddTask(inputStr, telegramBotClient, update);
@@ -199,49 +272,14 @@ namespace CookingBot
             while (string.IsNullOrWhiteSpace(command));
         }
 
-        private void MyNameIs(ITelegramBotClient telegramBotClient, Update update)
-        {
-            Console.Clear();
-
-            if (_userService.GetUser(update.Message.From.Id) == null)
-            {
-                telegramBotClient.SendMessage(update.Message.Chat, " Вы еще не зарегистрированы. Хотите принять участие в проекте \"Кулинарный Бот\"?");
-                telegramBotClient.SendMessage(update.Message.Chat, " Для регистрации введите слово \"yes\" ");
-                str = Console.ReadLine().ToLower();
-                if (str == "yes")
-                {
-                    str = string.Empty;
-
-                    telegramBotClient.SendMessage(update.Message.Chat, $" Ваше отображаемое Имя \"{update.Message.From.Username}\" ");
-                    telegramBotClient.SendMessage(update.Message.Chat, $" Если хотите изменить, введите новое Имя. Если нет, просто нажмите Enter ");
-                    str = Console.ReadLine();
-                    if (string.IsNullOrWhiteSpace(str))
-                    {
-                        _userService.RegisterUser(update.Message.From.Id, update.Message.From.Username);
-                    }
-                    else
-                    {
-                        _userService.RegisterUser(update.Message.From.Id, str);
-                    }
-                    telegramBotClient.SendMessage(update.Message.Chat, " Зарегистрирован новый Пользователь");
-                    telegramBotClient.SendMessage(update.Message.Chat, $" UserId: {_userService.GetUser(update.Message.From.Id).UserId}");
-                    telegramBotClient.SendMessage(update.Message.Chat, $" TelegramUserId: {_userService.GetUser(update.Message.From.Id).TelegramUserId}");
-                    telegramBotClient.SendMessage(update.Message.Chat, $" TelegramUserName: {_userService.GetUser(update.Message.From.Id).TelegramUserName}");
-                    telegramBotClient.SendMessage(update.Message.Chat, $" Registered Date: {_userService.GetUser(update.Message.From.Id).RegisteredAt}");
-                    displayName = _userService.GetUser(update.Message.From.Id).TelegramUserName;
-                }
-            }
-            else
-            {
-                telegramBotClient.SendMessage(update.Message.Chat, $" {_userService.GetUser(update.Message.From.Id).TelegramUserName} Добро пожаловать");
-            }
-        }
-
         private void Help(ITelegramBotClient telegramBotClient, Update update)
         {
             StringBuilder str = new StringBuilder("\n"); ;
             str.AppendLine(" Вам доступны следующие команды:");
-            str.AppendLine(" \"/start\" - используется для начала работы");
+            if (_userService.GetUser(update.Message.From.Id) == null)
+            {
+                str.AppendLine(" \"/start\" - используется для начала работы");
+            }
             str.AppendLine(" \"/help\" - отображает краткую информацию как пользоваться Ботом, также выводит список доступных команд во время работы");
             str.AppendLine(" \"/info\" - предоставляет информацию о версии программы и дате её создания");
             if (_userService.GetUser(update.Message.From.Id) != null)

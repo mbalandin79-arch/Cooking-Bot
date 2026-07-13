@@ -15,7 +15,7 @@ namespace CookingBot
         {
             foreach (var curr in _dictUsers)
             {
-                if (curr.Value.TelegramUserId == telegramUserId)
+                if (curr.Key == telegramUserId)
                     return curr.Value;
             }
             return null;

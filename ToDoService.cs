@@ -13,32 +13,42 @@ namespace CookingBot
         private int _maxTasks = 0;
         private int _maxLengthTask = 0;
 
+        private void CheckCounthLimit()
+        {
+            if (_listTasks.Count() >= _maxTasks)
+                throw new TaskCountLimitException(_maxTasks);
+        }
+
+        private void CheckLengthLimits(string name)
+        {
+            if (name.Length > _maxLengthTask)
+            {
+                throw new TaskLengthLimitException(name.Length, _maxLengthTask);
+            }
+        }
+
+        private void CheckDuplicate(string name)
+        {
+            foreach (var curr in _listTasks)
+            {
+                if (curr.Name == name)
+                {
+                    throw new DuplicateTaskException(name);
+                }
+            }
+        }
+
         public ToDoItem Add(ToDoUser user, string name)
         {
-            if (_listTasks.Count() < _maxTasks)
+            CheckCounthLimit();
+            if (name.Length > 0)
             {
-                if (name.Length > _maxLengthTask)
-                {
-                    throw new TaskLengthLimitException(name.Length, _maxLengthTask);
-                }
-                if (name.Length > 0)
-                {
-                    foreach (var curr in _listTasks)
-                    {
-                        if (curr.Name == name)
-                        {
-                            throw new DuplicateTaskException(name);
-                        }
-                    }
-                }
+                CheckLengthLimits(name);
+                CheckDuplicate(name);
+            }
 
-                _listTasks.Add(new ToDoItem(user, name));
-                return _listTasks.Last();
-            }
-            else
-            {
-                throw new TaskCountLimitException(_maxTasks);
-            }
+            _listTasks.Add(new ToDoItem(user, name));
+            return _listTasks.Last();
         }
 
         public void Delete(Guid id)

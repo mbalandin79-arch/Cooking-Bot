@@ -4,10 +4,14 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 
+using CookingBot.Core.Entities;
+using CookingBot.Core.Exceptions;
+using CookingBot.Core.Services;
+
 using Otus.ToDoList.ConsoleBot;
 using Otus.ToDoList.ConsoleBot.Types;
 
-namespace CookingBot
+namespace CookingBot.TelegramBot
 {
     internal class UpdateHandler : IUpdateHandler
     {

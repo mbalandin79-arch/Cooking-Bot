@@ -5,7 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CookingBot
+using CookingBot.Core.DataAccess;
+using CookingBot.Core.Entities;
+
+namespace CookingBot.Core.Services
 {
     internal class UserService : IUserService
     {
@@ -23,13 +26,8 @@ namespace CookingBot
         }
 
         public ToDoUser? GetUser(long telegramUserId) // поиск Пользователя в БД и возврат всей записи пользователя либо NULL
-        {
-            foreach (var curr in _dictUsers)
-            {
-                if (curr.Key == telegramUserId)
-                    return curr.Value;
-            }
-            return null;
+        {            
+            return _dictUsers.FirstOrDefault(curr => curr.Key == telegramUserId).Value;
         }
 
         public ToDoUser RegisterUser(long telegramUserId, string telegramUserName)

@@ -4,7 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CookingBot
+using CookingBot.Core.Entities;
+
+namespace CookingBot.Core.Services
 {
     internal interface IUserService
     {

@@ -4,7 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CookingBot
+using CookingBot.Core.DataAccess;
+using CookingBot.Core.Entities;
+
+namespace CookingBot.Infrastructure.DataAccess
 {
     internal class InMemoryUserRepository : IUserRepository
     {
@@ -16,23 +19,13 @@ namespace CookingBot
         }
 
         public ToDoUser? GetUser(Guid userId)
-        {
-            foreach (var curr in _usersInMemory)
-            {
-                if (curr.UserId == userId)
-                    return curr;
-            }
-            return null;
+        {            
+            return _usersInMemory.FirstOrDefault(curr => curr.UserId == userId);
         }
 
         public ToDoUser? GetUserByTelegramUserId(long telegramUserId)
-        {
-            foreach (var curr in _usersInMemory)
-            {
-                if (curr.TelegramUserId == telegramUserId)
-                    return curr;
-            }
-            return null;
+        {            
+            return _usersInMemory.FirstOrDefault(curr => curr.TelegramUserId == telegramUserId);
         }
     }
 }

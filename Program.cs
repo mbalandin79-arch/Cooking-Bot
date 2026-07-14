@@ -1,4 +1,7 @@
-﻿using Otus.ToDoList.ConsoleBot;
+﻿using CookingBot.Core.Services;
+using CookingBot.TelegramBot;
+
+using Otus.ToDoList.ConsoleBot;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;

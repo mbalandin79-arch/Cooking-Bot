@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CookingBot
+namespace CookingBot.Core.Exceptions
 {
     public class TaskLengthLimitException : Exception
     {

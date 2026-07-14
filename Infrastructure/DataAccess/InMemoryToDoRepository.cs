@@ -5,7 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace CookingBot
+using CookingBot.Core.DataAccess;
+using CookingBot.Core.Entities;
+
+namespace CookingBot.Infrastructure.DataAccess
 {
     internal class InMemoryToDoRepository : IToDoRepository
     {
@@ -45,13 +48,8 @@ namespace CookingBot
         }
 
         public ToDoItem? Get(Guid id)
-        {
-            foreach (var curr in _toDoItems)
-            {
-                if (curr.Id == id)
-                    return curr;
-            }
-            return null;
+        {            
+            return _toDoItems.FirstOrDefault(curr => curr.Id == id);
         }
 
         public IReadOnlyList<ToDoItem> GetActiveByUserId(Guid userId)
@@ -92,8 +90,8 @@ namespace CookingBot
         {
             CheckItemInMemory(item);
 
-            _toDoItems.Remove(_toDoItems.First(f => f.Id == item.Id));
-            _toDoItems.Add(item);
+            var index = _toDoItems.IndexOf(_toDoItems.FirstOrDefault(f => f.Id == item.Id));
+            _toDoItems[index] = item;
         }
     }
 }

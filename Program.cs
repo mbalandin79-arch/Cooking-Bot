@@ -8,7 +8,7 @@ namespace CookingBot
     internal class Program
     {
         static void Main(string[] args)
-        {
+        { // начинаю ДЗ 7
             try
             {
                 ToDoService toDoService = new ToDoService();

@@ -10,6 +10,17 @@ namespace CookingBot
     internal class UserService : IUserService
     {
         private ConcurrentDictionary<long, ToDoUser> _dictUsers = new ConcurrentDictionary<long, ToDoUser>();
+        private readonly IUserRepository _userRepository;
+
+        public UserService()
+        {
+
+        }
+
+        public UserService(IUserRepository userRepository)
+        {
+            _userRepository = userRepository;
+        }
 
         public ToDoUser? GetUser(long telegramUserId) // поиск Пользователя в БД и возврат всей записи пользователя либо NULL
         {

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,6 +11,17 @@ namespace CookingBot
         private List<ToDoItem> _listTasks = new List<ToDoItem>();
         private int _maxTasks = 0;
         private int _maxLengthTask = 0;
+        private readonly IToDoRepository _repository;
+
+        public ToDoService()
+        {
+
+        }
+
+        public ToDoService(IToDoRepository repository)
+        {
+            _repository = repository;
+        }
 
         private void CheckCounthLimit()
         {

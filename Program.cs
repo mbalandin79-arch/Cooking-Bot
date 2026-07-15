@@ -1,10 +1,12 @@
-﻿using CookingBot.Core.Services;
+﻿using System.Diagnostics;
+using System.Reflection;
+using System.Text;
+
+using CookingBot.Core.Services;
+using CookingBot.Infrastructure.DataAccess;
 using CookingBot.TelegramBot;
 
 using Otus.ToDoList.ConsoleBot;
-using System.Diagnostics;
-using System.Reflection;
-using System.Text;
 
 namespace CookingBot
 {
@@ -14,8 +16,10 @@ namespace CookingBot
         {
             try
             {
-                ToDoService toDoService = new ToDoService();
-                UserService userService = new UserService();
+                InMemoryUserRepository userRepository = new InMemoryUserRepository();
+                InMemoryToDoRepository toDoRepository = new InMemoryToDoRepository();
+                ToDoService toDoService = new ToDoService(toDoRepository);
+                UserService userService = new UserService(userRepository);
                 UpdateHandler handler = new UpdateHandler(userService, toDoService);
                 ConsoleBotClient botClient = new ConsoleBotClient();
                 botClient.StartReceiving(handler);

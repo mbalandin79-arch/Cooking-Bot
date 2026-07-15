@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 using CookingBot.Core.DataAccess;
 using CookingBot.Core.Entities;
+using CookingBot.Core.Exceptions;
 
 namespace CookingBot
 {
@@ -14,16 +14,16 @@ namespace CookingBot
         private List<ToDoItem> _listTasks = new List<ToDoItem>();
         private int _maxTasks = 0;
         private int _maxLengthTask = 0;
-        private readonly IToDoRepository _repository;
+        private readonly IToDoRepository _toDoRepository;
 
         public ToDoService()
         {
 
         }
 
-        public ToDoService(IToDoRepository repository)
+        public ToDoService(IToDoRepository toDoRepository)
         {
-            _repository = repository;
+            _toDoRepository = toDoRepository;
         }
 
         private void CheckCounthLimit()
@@ -124,6 +124,11 @@ namespace CookingBot
         {
             _maxTasks = maxTasks;
             _maxLengthTask = maxLengthTask;
+        }
+
+        public IReadOnlyList<ToDoItem> Find(ToDoUser user, string namePrefix)
+        {
+            throw new NotImplementedException();
         }
     }
 }

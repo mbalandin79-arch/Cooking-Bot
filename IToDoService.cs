@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 using CookingBot.Core.Entities;
 
 namespace CookingBot
@@ -27,5 +26,8 @@ namespace CookingBot
 
         // Задает ограничения для ToDoItem
         void SetConfiguration(int maxTasks, int maxLengthTask);
+
+        // Возвращает все задачи пользователя, которые начинаются на namePrefix, использует метод IToDoRepository.Find
+        IReadOnlyList<ToDoItem> Find(ToDoUser user, string namePrefix);
     }
 }

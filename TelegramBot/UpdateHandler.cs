@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
-
 using CookingBot.Core.Entities;
 using CookingBot.Core.Exceptions;
 using CookingBot.Core.Services;
-
 using Otus.ToDoList.ConsoleBot;
 using Otus.ToDoList.ConsoleBot.Types;
 
@@ -112,7 +110,7 @@ namespace CookingBot.TelegramBot
         {
             int answ = 0;
 
-            if (!int.TryParse(str, out answ) || (answ < min || answ > max))
+            if (!int.TryParse(str, out answ) || answ < min || answ > max)
                 throw new ArgumentException($"{0} это значение не соответствует требованиям", str);
 
             return answ;
@@ -128,10 +126,12 @@ namespace CookingBot.TelegramBot
             str.AppendLine(" \"/help\" - отображает краткую информацию как пользоваться Ботом, также выводит список доступных команд во время работы");
             str.AppendLine(" \"/info\" - предоставляет информацию о версии программы и дате её создания");
             str.AppendLine(" \"/addtask Задача\" - позволяет добавить Задачу, между командой и Задачей обязательно должен быть пробел");
-            str.AppendLine(" \"/showtasks\" - отображает все доступные задачи");
-            str.AppendLine(" \"/showalltasks\" - отображает все доступные задачи");
+            str.AppendLine(" \"/showtasks\" - отображает все \"Активные\" задачи");
+            str.AppendLine(" \"/showalltasks\" - отображает все задачи");
             str.AppendLine(" \"/removetask Идентификатор\" - позволяет удалить доступную задачу по ее Идентификатору, между командой и Идентификатором обязательно должен быть пробел");
             str.AppendLine(" \"/completetask Идентификатор\" - позволяет изменить состояние задачи с \"Активная\" на \"Завершенная\", между командой и Идентификатором обязательно должен быть пробел");
+            str.AppendLine(" \"/report\" - отображает статистику по задачам текущего пользователя на данный момент времени");
+            str.AppendLine(" \"/find Имя\" - отображает все задачи зарегистрированного пользователя с именем \"Имя\", между командой и Именем обязательно должен быть пробел");
             str.AppendLine(" \"/exit\" - завершение работы\n");
             str.AppendLine(" В процессе работы перечень доступных команд будет меняться");
             str.AppendLine(" Команды следует вводить с клавиатуры в Консоль");
@@ -152,7 +152,7 @@ namespace CookingBot.TelegramBot
             {
                 if (string.IsNullOrWhiteSpace(command))
                 {
-                    telegramBotClient.SendMessage(update.Message.Chat, $"{displayName} Введите команду: ");
+                    telegramBotClient.SendMessage(update.Message.Chat, $"{displayName}, Введите команду: ");
                     inputStr = Console.ReadLine().ToLower();
                     command = inputStr.Split(' ')[0];
                 }
@@ -229,7 +229,7 @@ namespace CookingBot.TelegramBot
             {
                 if (string.IsNullOrWhiteSpace(command))
                 {
-                    telegramBotClient.SendMessage(update.Message.Chat, $"{displayName} Введите команду: ");
+                    telegramBotClient.SendMessage(update.Message.Chat, $"{displayName}, Введите команду: ");
                     inputStr = Console.ReadLine().ToLower();
                     command = inputStr.Split(' ')[0];
                 }
@@ -264,6 +264,14 @@ namespace CookingBot.TelegramBot
                         CompleteTask(inputStr, telegramBotClient, update);
                         command = string.Empty;
                         break;
+                    case "/report":
+                        Report(telegramBotClient, update);
+                        command = string.Empty;
+                        break;
+                    case "/find":
+                        Find(inputStr, telegramBotClient, update);
+                        command = string.Empty;
+                        break;
                     case "/exit":
                         Environment.Exit(0);
                         break;
@@ -289,10 +297,12 @@ namespace CookingBot.TelegramBot
             if (_userService.GetUser(update.Message.From.Id) != null)
             {
                 str.AppendLine(" \"/addtask Задача\" - позволяет добавить Задачу, между командой и Задачей обязательно должен быть пробел");
-                str.AppendLine(" \"/showtasks\" - отображает все активные задачи");
-                str.AppendLine(" \"/showalltasks\" - отображает все доступные задачи");
+                str.AppendLine(" \"/showtasks\" - отображает все \"Активные\" задачи");
+                str.AppendLine(" \"/showalltasks\" - отображает все задачи");
                 str.AppendLine(" \"/removetask Идентификатор\" - позволяет удалить доступную задачу по ее Идентификатору, между командой и Идентификатором обязательно должен быть пробел");
                 str.AppendLine(" \"/completetask Идентификатор\" - позволяет изменить состояние задачи с \"Активная\" на \"Завершенная\", между командой и Идентификатором обязательно должен быть пробел");
+                str.AppendLine(" \"/report\" - отображает статистику по задачам текущего пользователя на данный момент времени");
+                str.AppendLine(" \"/find Имя\" - отображает все задачи зарегистрированного пользователя с именем \"Имя\", между командой и Именем обязательно должен быть пробел");
             }
             str.AppendLine(" \"/exit\" - завершает работу Бота\n");
             telegramBotClient.SendMessage(update.Message.Chat, str.ToString());
@@ -460,6 +470,16 @@ namespace CookingBot.TelegramBot
             {
                 telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст");
             }
+        }
+
+        private void Report(ITelegramBotClient telegramBotClient, Update update)
+        {
+            telegramBotClient.SendMessage(update.Message.Chat, $" Статистика по задачам на {DateTime.Now}\n Всего: {10};\n Завершенных: {7}\n Активных: {3}");
+        }
+
+        private void Find(string inputStr, ITelegramBotClient telegramBotClient, Update update)
+        {
+            telegramBotClient.SendMessage(update.Message.Chat, " Здесь будет обработка команды \"/find\"");
         }
     }
 }

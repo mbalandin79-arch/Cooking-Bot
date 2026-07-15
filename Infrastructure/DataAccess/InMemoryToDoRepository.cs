@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Xml.Linq;
-
 using CookingBot.Core.DataAccess;
 using CookingBot.Core.Entities;
+using CookingBot.Core.Exceptions;
 
 namespace CookingBot.Infrastructure.DataAccess
 {
@@ -92,6 +91,11 @@ namespace CookingBot.Infrastructure.DataAccess
 
             var index = _toDoItems.IndexOf(_toDoItems.FirstOrDefault(f => f.Id == item.Id));
             _toDoItems[index] = item;
+        }
+
+        public IReadOnlyList<ToDoItem> Find(Guid userId, Func<ToDoItem, bool> predicate)
+        {
+            return _toDoItems.Where(f => predicate(f) && f.Id == userId).ToList();
         }
     }
 }

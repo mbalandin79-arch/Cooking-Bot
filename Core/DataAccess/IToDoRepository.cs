@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
 using CookingBot.Core.Entities;
 
 namespace CookingBot.Core.DataAccess
@@ -14,6 +13,9 @@ namespace CookingBot.Core.DataAccess
 
         // Возвращает ToDoItem для UserId со статусом Active
         IReadOnlyList<ToDoItem> GetActiveByUserId(Guid userId);
+
+        // Возвращает все задачи пользователя, которые удовлетворяют предикате
+        IReadOnlyList<ToDoItem> Find(Guid userId, Func<ToDoItem, bool> predicate);
 
         ToDoItem? Get(Guid id);
 

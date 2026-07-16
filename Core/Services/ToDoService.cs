@@ -7,7 +7,7 @@ using CookingBot.Core.DataAccess;
 using CookingBot.Core.Entities;
 using CookingBot.Core.Exceptions;
 
-namespace CookingBot
+namespace CookingBot.Core.Services
 {
     internal class ToDoService : IToDoService
     {
@@ -114,7 +114,7 @@ namespace CookingBot
         {
             int answ = 0;
 
-            if (!int.TryParse(str, out answ) || (answ < min || answ > max))
+            if (!int.TryParse(str, out answ) || answ < min || answ > max)
                 throw new ArgumentException($"{0} это значение не соответствует требованиям", str);
 
             return answ;
@@ -128,7 +128,7 @@ namespace CookingBot
 
         public IReadOnlyList<ToDoItem> Find(ToDoUser user, string namePrefix)
         {
-            throw new NotImplementedException();
+            return _toDoRepository.Find(user.UserId, x => x.Name.ToLower().StartsWith(namePrefix.ToLower())).ToList();
         }
     }
 }

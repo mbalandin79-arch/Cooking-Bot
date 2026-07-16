@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using CookingBot.Core.Entities;
 
-namespace CookingBot
+namespace CookingBot.Core.Services
 {
     internal interface IToDoService
     {

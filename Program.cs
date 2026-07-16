@@ -1,12 +1,10 @@
-﻿using System.Diagnostics;
-using System.Reflection;
-using System.Text;
-
-using CookingBot.Core.Services;
+﻿using CookingBot.Core.Services;
 using CookingBot.Infrastructure.DataAccess;
 using CookingBot.TelegramBot;
-
 using Otus.ToDoList.ConsoleBot;
+using System.Diagnostics;
+using System.Reflection;
+using System.Text;
 
 namespace CookingBot
 {

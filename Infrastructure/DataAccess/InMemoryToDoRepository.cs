@@ -95,7 +95,7 @@ namespace CookingBot.Infrastructure.DataAccess
 
         public IReadOnlyList<ToDoItem> Find(Guid userId, Func<ToDoItem, bool> predicate)
         {
-            return _toDoItems.Where(f => predicate(f) && f.Id == userId).ToList();
+            return _toDoItems.Where(f => predicate(f) && f.User.UserId == userId).ToList();
         }
     }
 }

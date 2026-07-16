@@ -325,7 +325,15 @@ namespace CookingBot.TelegramBot
         {
             try
             {
-                string newTask = inputStr.Substring(9);
+                string newTask;
+                if (inputStr.Length > 8)
+                {
+                    newTask = inputStr.Substring(9);
+                }
+                else
+                {
+                    newTask = string.Empty;
+                }
 
                 Console.Clear();
 
@@ -408,7 +416,16 @@ namespace CookingBot.TelegramBot
 
             if (listTasks.Count() > 0)
             {
-                string selectedId = inputStr.Substring(14);
+                string selectedId;
+                if (inputStr.Length > 13)
+                {
+                    selectedId = inputStr.Substring(14);
+                }
+                else
+                {
+                    selectedId = string.Empty;
+                }
+
                 Guid num = default(Guid);
 
                 if (Guid.TryParse(selectedId, out num))
@@ -445,7 +462,16 @@ namespace CookingBot.TelegramBot
 
             if (listAllTasks.Count() > 0)
             {
-                string selectedId = inputStr.Substring(12);
+                string selectedId;
+                if (inputStr.Length > 11)
+                {
+                    selectedId = inputStr.Substring(12);
+                }
+                else
+                {
+                    selectedId = string.Empty;
+                }
+
                 Guid num = default(Guid);
 
                 if (Guid.TryParse(selectedId, out num))
@@ -475,11 +501,41 @@ namespace CookingBot.TelegramBot
         private void Report(ITelegramBotClient telegramBotClient, Update update)
         {
             telegramBotClient.SendMessage(update.Message.Chat, $" Статистика по задачам на {DateTime.Now}\n Всего: {10};\n Завершенных: {7}\n Активных: {3}");
+            telegramBotClient.SendMessage(update.Message.Chat, " На самом деле команда не работает");
         }
 
         private void Find(string inputStr, ITelegramBotClient telegramBotClient, Update update)
         {
-            telegramBotClient.SendMessage(update.Message.Chat, " Здесь будет обработка команды \"/find\"");
+            string namePrefix;
+            if (inputStr.Length > 5)
+            {
+                namePrefix = inputStr.Substring(6);
+            }
+            else
+            {
+                namePrefix = string.Empty;
+            }
+
+            if (!string.IsNullOrWhiteSpace(namePrefix))
+            {
+                List<ToDoItem> listTasks = _todoService.Find(_userService.GetUser(update.Message.From.Id), namePrefix).ToList();
+
+                if (listTasks.Count() > 0)
+                {
+                    for (int i = 0; i < listTasks.Count(); i++)
+                    {
+                        telegramBotClient.SendMessage(update.Message.Chat, $"{i + 1}. {listTasks[i].Name} - {listTasks[i].CreatedAt} - {listTasks[i].Id}");
+                    }
+                }
+                else
+                {
+                    telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст");
+                }
+            }
+            else
+            {
+                telegramBotClient.SendMessage(update.Message.Chat, " Аргумент для команды \"/find\" отсутствует");
+            }
         }
     }
 }

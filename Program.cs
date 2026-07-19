@@ -14,11 +14,13 @@ namespace CookingBot
         {
             try
             {
+
                 InMemoryUserRepository userRepository = new InMemoryUserRepository();
                 InMemoryToDoRepository toDoRepository = new InMemoryToDoRepository();
+                ToDoReportService toDoReportService = new ToDoReportService(toDoRepository);
                 ToDoService toDoService = new ToDoService(toDoRepository);
                 UserService userService = new UserService(userRepository);
-                UpdateHandler handler = new UpdateHandler(userService, toDoService);
+                UpdateHandler handler = new UpdateHandler(userService, toDoService, toDoReportService);
                 ConsoleBotClient botClient = new ConsoleBotClient();
                 botClient.StartReceiving(handler);
             }

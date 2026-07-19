@@ -14,7 +14,8 @@ namespace CookingBot.TelegramBot
     internal class UpdateHandler : IUpdateHandler
     {
         private readonly IUserService _userService;
-        private readonly IToDoService _todoService;
+        private readonly IToDoService _todoService;        
+        private readonly IToDoReportService _toDoReportService;
         public string displayName = "Гость";
         public int maxTask = 0;
         public int maxLengthTask = 0;
@@ -29,6 +30,13 @@ namespace CookingBot.TelegramBot
         {
             _userService = (IUserService?)userService;
             _todoService = (IToDoService?)todoService;
+        }
+
+        public UpdateHandler(IUserService userService, IToDoService todoService, IToDoReportService toDoReportService)
+        {
+            _userService = (IUserService?)userService;
+            _todoService = (IToDoService?)todoService;
+            _toDoReportService = (IToDoReportService)toDoReportService;
         }
 
         public void HandleUpdateAsync(ITelegramBotClient telegramBotClient, Update update)
@@ -500,8 +508,11 @@ namespace CookingBot.TelegramBot
 
         private void Report(ITelegramBotClient telegramBotClient, Update update)
         {
-            telegramBotClient.SendMessage(update.Message.Chat, $" Статистика по задачам на {DateTime.Now}\n Всего: {10};\n Завершенных: {7}\n Активных: {3}");
-            telegramBotClient.SendMessage(update.Message.Chat, " На самом деле команда не работает");
+            _toDoReportService.GetUserStats(_userService.GetUser(update.Message.From.Id).UserId);
+            telegramBotClient.SendMessage(update.Message.Chat, $" Статистика по задачам на {_toDoReportService.GetUserStats(_userService.GetUser(update.Message.From.Id).UserId).generatedAt}");
+            telegramBotClient.SendMessage(update.Message.Chat, $" Всего: {_toDoReportService.GetUserStats(_userService.GetUser(update.Message.From.Id).UserId).total}");
+            telegramBotClient.SendMessage(update.Message.Chat, $" Завершенных: {_toDoReportService.GetUserStats(_userService.GetUser(update.Message.From.Id).UserId).completed}");
+            telegramBotClient.SendMessage(update.Message.Chat, $" Активных: {_toDoReportService.GetUserStats(_userService.GetUser(update.Message.From.Id).UserId).active}");
         }
 
         private void Find(string inputStr, ITelegramBotClient telegramBotClient, Update update)

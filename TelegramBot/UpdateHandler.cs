@@ -14,17 +14,14 @@ namespace CookingBot.TelegramBot
     internal class UpdateHandler : IUpdateHandler
     {
         private readonly IUserService _userService;
-        private readonly IToDoService _todoService;        
+        private readonly IToDoService _todoService;
         private readonly IToDoReportService _toDoReportService;
         public string displayName = "Гость";
         public int maxTask = 0;
         public int maxLengthTask = 0;
         string str;
 
-        public UpdateHandler()
-        {
-
-        }
+        public UpdateHandler() { }
 
         public UpdateHandler(IUserService userService, IToDoService todoService)
         {
@@ -123,7 +120,7 @@ namespace CookingBot.TelegramBot
 
             return answ;
         }
-        
+
         private void Greeting(ITelegramBotClient telegramBotClient, Update update)
         {
             Console.Clear();
@@ -149,7 +146,7 @@ namespace CookingBot.TelegramBot
             str.Append(" Для продолжения нажмите Enter");
             telegramBotClient.SendMessage(update.Message.Chat, str.ToString());
             Console.ReadLine();
-        }   
+        }
 
         private void Work(ITelegramBotClient telegramBotClient, Update update)
         {
@@ -178,7 +175,7 @@ namespace CookingBot.TelegramBot
                     case "/info":
                         Info(telegramBotClient, update);
                         command = string.Empty;
-                        break;                    
+                        break;
                     default:
                         telegramBotClient.SendMessage(update.Message.Chat, " Бот не знает такой команды либо эта команда недоступна\n Для просмотра доступных команд введите \"/help\"");
                         command = string.Empty;
@@ -218,11 +215,15 @@ namespace CookingBot.TelegramBot
             if (_userService.GetUser(update.Message.From.Id) == null)
             {
                 telegramBotClient.SendMessage(update.Message.Chat, " Вы еще не зарегистрированы. Хотите принять участие в проекте \"Кулинарный Бот\"?");
-                telegramBotClient.SendMessage(update.Message.Chat, " Для регистрации введите слово \"yes\" ");
+                telegramBotClient.SendMessage(update.Message.Chat, " Для регистрации введите \"Y\" ");
                 str = Console.ReadLine().ToLower();
-                if (str == "yes")
+                if (str == "y")
                 {
                     UserRegistration(telegramBotClient, update);
+                }
+                else
+                {
+                    return;
                 }
             }
             else
@@ -508,11 +509,16 @@ namespace CookingBot.TelegramBot
 
         private void Report(ITelegramBotClient telegramBotClient, Update update)
         {
-            _toDoReportService.GetUserStats(_userService.GetUser(update.Message.From.Id).UserId);
-            telegramBotClient.SendMessage(update.Message.Chat, $" Статистика по задачам на {_toDoReportService.GetUserStats(_userService.GetUser(update.Message.From.Id).UserId).generatedAt}");
-            telegramBotClient.SendMessage(update.Message.Chat, $" Всего: {_toDoReportService.GetUserStats(_userService.GetUser(update.Message.From.Id).UserId).total}");
-            telegramBotClient.SendMessage(update.Message.Chat, $" Завершенных: {_toDoReportService.GetUserStats(_userService.GetUser(update.Message.From.Id).UserId).completed}");
-            telegramBotClient.SendMessage(update.Message.Chat, $" Активных: {_toDoReportService.GetUserStats(_userService.GetUser(update.Message.From.Id).UserId).active}");
+            var tempReportService = _toDoReportService.GetUserStats(_userService.GetUser(update.Message.From.Id).UserId);
+            string _generatedAt = tempReportService.generatedAt.ToShortDateString();
+            int _total = tempReportService.total;
+            int _active = tempReportService.active;
+            int _completed = tempReportService.completed;
+
+            telegramBotClient.SendMessage(update.Message.Chat, $" Статистика по задачам на {_generatedAt}");
+            telegramBotClient.SendMessage(update.Message.Chat, $" Всего: {_total}");
+            telegramBotClient.SendMessage(update.Message.Chat, $" Завершенных: {_completed}");
+            telegramBotClient.SendMessage(update.Message.Chat, $" Активных: {_active}");
         }
 
         private void Find(string inputStr, ITelegramBotClient telegramBotClient, Update update)

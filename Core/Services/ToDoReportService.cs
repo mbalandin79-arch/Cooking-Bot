@@ -4,7 +4,6 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-
 using CookingBot.Core.DataAccess;
 using CookingBot.Infrastructure.DataAccess;
 
@@ -23,10 +22,14 @@ namespace CookingBot.Core.Services
 
         public (int total, int completed, int active, DateTime generatedAt) GetUserStats(Guid userId)
         {
-            int _total = 0;
-            int _completed = 0;
-            int _active = 0;
-            DateTime _generateAt = DateTime.Now;            
+            int _total;
+            int _completed;
+            int _active;
+            DateTime _generateAt = DateTime.Now;
+
+            _total = _toDoRepository.GetAllByUserId(userId).Count() > 0 ? _toDoRepository.GetAllByUserId(userId).Count() : 0;
+            _active = _toDoRepository.GetActiveByUserId(userId).Count() > 0 ? _toDoRepository.GetActiveByUserId(userId).Count() : 0;
+            _completed = _total > 0 ? _total - _active : 0;
 
             return (total: _total, completed: _completed, active: _active, generatedAt: _generateAt);
         }

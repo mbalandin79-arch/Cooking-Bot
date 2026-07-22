@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using CookingBot.Core.DataAccess;
 using CookingBot.Core.Entities;
 using CookingBot.Core.Exceptions;
+using Otus.ToDoList.ConsoleBot.Types;
 
 namespace CookingBot.Core.Services
 {
@@ -16,14 +17,11 @@ namespace CookingBot.Core.Services
         private int _maxLengthTask = 0;
         private readonly IToDoRepository _toDoRepository;
 
-        public ToDoService()
-        {
-
-        }
+        public ToDoService() { }
 
         public ToDoService(IToDoRepository toDoRepository)
         {
-            _toDoRepository = toDoRepository;
+            _toDoRepository = (IToDoRepository?)toDoRepository;
         }
 
         private void CheckCounthLimit()
@@ -128,6 +126,23 @@ namespace CookingBot.Core.Services
 
         public IReadOnlyList<ToDoItem> Find(ToDoUser user, string namePrefix)
         {
+            // очистка _toDoRepository
+            List<ToDoItem> listTemp = new List<ToDoItem>();
+            listTemp = _toDoRepository.GetAllByUserId(user.UserId).ToList();
+            foreach (var curr in listTemp)
+            {
+                _toDoRepository.Delete(curr.Id);
+            }
+
+            // заполнение _toDoRepository
+            foreach (var curr in _listTasks)
+            {
+                if (curr.User.UserId == user.UserId)
+                {
+                    _toDoRepository.Add(curr);
+                }
+            }
+
             return _toDoRepository.Find(user.UserId, x => x.Name.ToLower().StartsWith(namePrefix.ToLower())).ToList();
         }
     }

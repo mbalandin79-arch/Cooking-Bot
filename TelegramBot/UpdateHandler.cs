@@ -33,7 +33,7 @@ namespace CookingBot.TelegramBot
         {
             _userService = (IUserService?)userService;
             _todoService = (IToDoService?)todoService;
-            _toDoReportService = (IToDoReportService)toDoReportService;
+            _toDoReportService = (IToDoReportService?)toDoReportService;
         }
 
         public void HandleUpdateAsync(ITelegramBotClient telegramBotClient, Update update)
@@ -508,7 +508,7 @@ namespace CookingBot.TelegramBot
         }
 
         private void Report(ITelegramBotClient telegramBotClient, Update update)
-        {
+        {            
             var tempReportService = _toDoReportService.GetUserStats(_userService.GetUser(update.Message.From.Id).UserId);
             string _generatedAt = tempReportService.generatedAt.ToShortDateString();
             int _total = tempReportService.total;

@@ -1,7 +1,9 @@
 ﻿using CookingBot.Core.Services;
 using CookingBot.Infrastructure.DataAccess;
 using CookingBot.TelegramBot;
+
 using Otus.ToDoList.ConsoleBot;
+
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
@@ -16,8 +18,9 @@ namespace CookingBot
             {
                 InMemoryUserRepository userRepository = new InMemoryUserRepository();
                 InMemoryToDoRepository toDoRepository = new InMemoryToDoRepository();
-                ToDoReportService toDoReportService = new ToDoReportService(toDoRepository);
+                //ToDoReportService toDoReportService = new ToDoReportService(toDoRepository);
                 ToDoService toDoService = new ToDoService(toDoRepository);
+                ToDoReportService toDoReportService = new ToDoReportService(toDoRepository, toDoService);
                 UserService userService = new UserService(userRepository);
                 UpdateHandler handler = new UpdateHandler(userService, toDoService, toDoReportService);
                 ConsoleBotClient botClient = new ConsoleBotClient();
@@ -46,6 +49,6 @@ namespace CookingBot
                     }
                 }
             }
-        }        
-    }    
+        }
+    }
 }

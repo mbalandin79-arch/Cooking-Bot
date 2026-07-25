@@ -32,9 +32,7 @@ namespace CookingBot.Core.Services
             int _completed;
             int _active;
             DateTime _generateAt = DateTime.Now;
-
-            //_total = _toDoRepository.GetAllByUserId(userId).Count() > 0 ? _toDoRepository.GetAllByUserId(userId).Count() : 0;
-            //_active = _toDoRepository.GetActiveByUserId(userId).Count() > 0 ? _toDoRepository.GetActiveByUserId(userId).Count() : 0;
+                        
             _total = _todoService.GetAllByUserId(userId).Count() > 0 ? _todoService.GetAllByUserId(userId).Count() : 0;
             _active = _todoService.GetActiveByUserId(userId).Count() > 0 ? _todoService.GetActiveByUserId(userId).Count() : 0;
             _completed = _total > 0 ? _total - _active : 0;

@@ -12,7 +12,6 @@ namespace CookingBot.Core.Services
 {
     internal class ToDoService : IToDoService
     {
-        private List<ToDoItem> _listTasks = new List<ToDoItem>();
         private int _maxTasks = 0;
         private int _maxLengthTask = 0;
         private readonly IToDoRepository _toDoRepository;
@@ -24,9 +23,9 @@ namespace CookingBot.Core.Services
             _toDoRepository = (IToDoRepository?)toDoRepository;
         }
 
-        private void CheckCounthLimit()
+        private void CheckCounthLimit(Guid userId)
         {
-            if (_listTasks.Count() >= _maxTasks)
+            if (_toDoRepository.CountActive(userId) >= _maxTasks)
                 throw new TaskCountLimitException(_maxTasks);
         }
 
@@ -38,67 +37,50 @@ namespace CookingBot.Core.Services
             }
         }
 
-        private void CheckDuplicate(string name)
+        private void CheckDuplicate(Guid userId, string name)
         {
-            foreach (var curr in _listTasks)
+            if (_toDoRepository.ExistsByName(userId, name))
             {
-                if (curr.Name == name)
-                {
-                    throw new DuplicateTaskException(name);
-                }
+                throw new DuplicateTaskException(name);
             }
         }
 
         public ToDoItem Add(ToDoUser user, string name)
         {
-            CheckCounthLimit();
+            CheckCounthLimit(user.UserId);
             if (name.Length > 0)
             {
                 CheckLengthLimits(name);
-                CheckDuplicate(name);
+                CheckDuplicate(user.UserId, name);
             }
 
-            _listTasks.Add(new ToDoItem(user, name));
-            return _listTasks.Last();
+            _toDoRepository.Add(new ToDoItem(user, name));
+
+            return _toDoRepository.Find(user.UserId, x => x.Name == name).First();
         }
 
         public void Delete(Guid id)
         {
-            _listTasks.Remove(_listTasks.First(f => f.Id == id));
+            _toDoRepository.Delete(id);
         }
 
         public IReadOnlyList<ToDoItem> GetActiveByUserId(Guid userId)
         {
-            List<ToDoItem> listTemp = new List<ToDoItem>();
-
-            foreach (var curr in _listTasks)
-            {
-                if (curr.User.UserId == userId && curr.State == ToDoItem.ToDoItemState.Active)
-                    listTemp.Add(curr);
-            }
-
-            return listTemp;
+            return _toDoRepository.GetActiveByUserId(userId);
         }
 
         public IReadOnlyList<ToDoItem> GetAllByUserId(Guid userId)
         {
-            List<ToDoItem> listTemp = new List<ToDoItem>();
-
-            foreach (var curr in _listTasks)
-            {
-                if (curr.User.UserId == userId)
-                    listTemp.Add(curr);
-            }
-
-            return listTemp;
+            return _toDoRepository.GetAllByUserId(userId);
         }
 
         public void MarkCompleted(Guid id)
         {
             if (id != default(Guid))
             {
-                _listTasks.Where(w => w.Id == id).FirstOrDefault().State = ToDoItem.ToDoItemState.Completed;
-                _listTasks.Where(w => w.Id == id).FirstOrDefault().CreatedAt = DateTime.Now;
+                ToDoItem updateItem = _toDoRepository.Get(id);
+                updateItem.State = ToDoItem.ToDoItemState.Completed;
+                _toDoRepository.Update(updateItem);
             }
         }
 
@@ -126,23 +108,6 @@ namespace CookingBot.Core.Services
 
         public IReadOnlyList<ToDoItem> Find(ToDoUser user, string namePrefix)
         {
-            // очистка _toDoRepository
-            List<ToDoItem> listTemp = new List<ToDoItem>();
-            listTemp = _toDoRepository.GetAllByUserId(user.UserId).ToList();
-            foreach (var curr in listTemp)
-            {
-                _toDoRepository.Delete(curr.Id);
-            }
-
-            // заполнение _toDoRepository
-            foreach (var curr in _listTasks)
-            {
-                if (curr.User.UserId == user.UserId)
-                {
-                    _toDoRepository.Add(curr);
-                }
-            }
-
             return _toDoRepository.Find(user.UserId, x => x.Name.ToLower().StartsWith(namePrefix.ToLower())).ToList();
         }
     }

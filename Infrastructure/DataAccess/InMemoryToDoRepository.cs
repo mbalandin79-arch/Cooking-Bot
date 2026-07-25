@@ -19,16 +19,8 @@ namespace CookingBot.Infrastructure.DataAccess
         }
 
         public int CountActive(Guid userId)
-        {
-            List<ToDoItem> listTemp = new List<ToDoItem>();
-
-            foreach (var curr in _toDoItems)
-            {
-                if (curr.User.UserId == userId && curr.State == ToDoItem.ToDoItemState.Active)
-                    listTemp.Add(curr);
-            }
-
-            return listTemp.Count();
+        {            
+            return _toDoItems.Where(w => w.State == ToDoItem.ToDoItemState.Active).Count();
         }
 
         public void Delete(Guid id)
@@ -47,7 +39,7 @@ namespace CookingBot.Infrastructure.DataAccess
         }
 
         public ToDoItem? Get(Guid id)
-        {            
+        {
             return _toDoItems.FirstOrDefault(curr => curr.Id == id);
         }
 
@@ -75,20 +67,10 @@ namespace CookingBot.Infrastructure.DataAccess
             }
 
             return listTemp;
-        }
-
-        private void CheckItemInMemory(ToDoItem item) 
-        {
-            if (_toDoItems.Find(f => f.Id == item.Id) == null)
-            {
-                throw new FindItemInMemoryException(item.Id.ToString());
-            }
-        }
+        }        
 
         public void Update(ToDoItem item)
         {
-            CheckItemInMemory(item);
-
             var index = _toDoItems.IndexOf(_toDoItems.FirstOrDefault(f => f.Id == item.Id));
             _toDoItems[index] = item;
         }

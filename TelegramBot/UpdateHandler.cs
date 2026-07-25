@@ -377,7 +377,7 @@ namespace CookingBot.TelegramBot
             catch (DuplicateTaskException e)
             {
                 telegramBotClient.SendMessage(update.Message.Chat, $"Задача ‘{e.Task}’ уже существует");
-            }
+            }            
         }
 
         private void ShowTasks(ITelegramBotClient telegramBotClient, Update update)

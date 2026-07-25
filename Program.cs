@@ -17,8 +17,7 @@ namespace CookingBot
             try
             {
                 InMemoryUserRepository userRepository = new InMemoryUserRepository();
-                InMemoryToDoRepository toDoRepository = new InMemoryToDoRepository();
-                //ToDoReportService toDoReportService = new ToDoReportService(toDoRepository);
+                InMemoryToDoRepository toDoRepository = new InMemoryToDoRepository();                
                 ToDoService toDoService = new ToDoService(toDoRepository);
                 ToDoReportService toDoReportService = new ToDoReportService(toDoRepository, toDoService);
                 UserService userService = new UserService(userRepository);

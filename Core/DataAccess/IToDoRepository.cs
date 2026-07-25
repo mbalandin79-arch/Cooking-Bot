@@ -9,9 +9,10 @@ namespace CookingBot.Core.DataAccess
 {
     internal interface IToDoRepository
     {
+        // Возвращает все задачи пользователя для UserId
         IReadOnlyList<ToDoItem> GetAllByUserId(Guid userId);
 
-        // Возвращает ToDoItem для UserId со статусом Active
+        // Возвращает все задачи пользователя для UserId со статусом Active
         IReadOnlyList<ToDoItem> GetActiveByUserId(Guid userId);
 
         // Возвращает все задачи пользователя, которые удовлетворяют предикате

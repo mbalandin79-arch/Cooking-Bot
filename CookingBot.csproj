@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Core\Exceptions\FindItemInMemoryException.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Дополнение к ДЗ5\Otus.ToDoList.ConsoleBot\Otus.ToDoList.ConsoleBot.csproj" />
   </ItemGroup>
 

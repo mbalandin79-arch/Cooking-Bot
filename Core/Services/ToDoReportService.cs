@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using CookingBot.Core.DataAccess;
+using CookingBot.Core.Entities;
 
 namespace CookingBot.Core.Services
 {
@@ -33,8 +34,8 @@ namespace CookingBot.Core.Services
             int _active;
             DateTime _generateAt = DateTime.Now;
                         
-            _total = _todoService.GetAllByUserId(userId).Count() > 0 ? _todoService.GetAllByUserId(userId).Count() : 0;
-            _active = _todoService.GetActiveByUserId(userId).Count() > 0 ? _todoService.GetActiveByUserId(userId).Count() : 0;
+            _total = _todoService.GetAllByUserId(userId).Result.Count() > 0 ? _todoService.GetAllByUserId(userId).Result.Count() : 0;
+            _active = _todoService.GetActiveByUserId(userId).Result.Count() > 0 ? _todoService.GetActiveByUserId(userId).Result.Count() : 0;
             _completed = _total > 0 ? _total - _active : 0;
 
             return (total: _total, completed: _completed, active: _active, generatedAt: _generateAt);

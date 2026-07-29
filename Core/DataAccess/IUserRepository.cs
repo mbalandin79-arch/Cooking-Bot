@@ -9,10 +9,10 @@ namespace CookingBot.Core.DataAccess
 {
     internal interface IUserRepository
     {
-        ToDoUser? GetUser(Guid userId);
+        Task<ToDoUser?> GetUser(Guid userId);
 
-        ToDoUser? GetUserByTelegramUserId(long telegramUserId);
+        Task<ToDoUser?> GetUserByTelegramUserId(long telegramUserId);
 
-        void Add(ToDoUser user);
+        Task Add(ToDoUser user);
     }
 }

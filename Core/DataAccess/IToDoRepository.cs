@@ -10,26 +10,26 @@ namespace CookingBot.Core.DataAccess
     internal interface IToDoRepository
     {
         // Возвращает все задачи пользователя для UserId
-        IReadOnlyList<ToDoItem> GetAllByUserId(Guid userId);
+        Task<IReadOnlyList<ToDoItem>> GetAllByUserId(Guid userId);
 
         // Возвращает все задачи пользователя для UserId со статусом Active
-        IReadOnlyList<ToDoItem> GetActiveByUserId(Guid userId);
+        Task<IReadOnlyList<ToDoItem>> GetActiveByUserId(Guid userId);
 
         // Возвращает все задачи пользователя, которые удовлетворяют предикате
-        IReadOnlyList<ToDoItem> Find(Guid userId, Func<ToDoItem, bool> predicate);
+        Task<IReadOnlyList<ToDoItem>> Find(Guid userId, Func<ToDoItem, bool> predicate);
 
-        ToDoItem? Get(Guid id);
+        Task<ToDoItem?> Get(Guid id);
 
-        void Add(ToDoItem item);
+        Task Add(ToDoItem item);
 
-        void Update(ToDoItem item);
+        Task Update(ToDoItem item);
 
-        void Delete(Guid id);
+        Task Delete(Guid id);
 
         // Проверяет есть ли задача с таким именем у пользователя
-        bool ExistsByName(Guid userId, string name);
+        Task<bool> ExistsByName(Guid userId, string name);
 
         // Возвращает количество активных задач у пользователя
-        int CountActive(Guid userId);
+        Task<int> CountActive(Guid userId);
     }
 }

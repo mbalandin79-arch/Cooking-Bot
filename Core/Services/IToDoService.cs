@@ -10,24 +10,24 @@ namespace CookingBot.Core.Services
     internal interface IToDoService
     {
         // Возвращает все ToDoItem для UserId
-        IReadOnlyList<ToDoItem> GetAllByUserId(Guid userId);
+        Task<IReadOnlyList<ToDoItem>> GetAllByUserId(Guid userId);
 
         // Возвращает ToDoItem для UserId со статусом Active
-        IReadOnlyList<ToDoItem> GetActiveByUserId(Guid userId);
+        Task<IReadOnlyList<ToDoItem>> GetActiveByUserId(Guid userId);
 
         // Добавляет ToDoItem в общий Список и возвращает добавленный ToDoItem
-        ToDoItem Add(ToDoUser user, string name);
+        Task<ToDoItem> Add(ToDoUser user, string name);
 
         // Изменяет ToDoItem в общем Списоке по Guid сотояние с Active на Completed 
-        void MarkCompleted(Guid id);
+        Task MarkCompleted(Guid id);
 
         // Удаляет ToDoItem из общего Списока по Guid
-        void Delete(Guid id);
+        Task Delete(Guid id);
 
         // Задает ограничения для ToDoItem
-        void SetConfiguration(int maxTasks, int maxLengthTask);
+        Task SetConfiguration(int maxTasks, int maxLengthTask);
 
         // Возвращает все задачи пользователя, которые начинаются на namePrefix, использует метод IToDoRepository.Find
-        IReadOnlyList<ToDoItem> Find(ToDoUser user, string namePrefix);
+        Task<IReadOnlyList<ToDoItem>> Find(ToDoUser user, string namePrefix);
     }
 }

@@ -1,11 +1,11 @@
-﻿using CookingBot.Core.DataAccess;
-using CookingBot.Core.Entities;
-using Otus.ToDoList.ConsoleBot.Types;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using CookingBot.Core.DataAccess;
+using CookingBot.Core.Entities;
+using Otus.ToDoList.ConsoleBot.Types;
 
 namespace CookingBot.Infrastructure.DataAccess
 {
@@ -13,17 +13,19 @@ namespace CookingBot.Infrastructure.DataAccess
     {
         private List<ToDoUser> _usersInMemory = new List<ToDoUser>();
 
-        public void Add(ToDoUser user)
+        public async Task Add(ToDoUser user)
         {
             _usersInMemory.Add(user);
+
+            return;
         }
 
-        public ToDoUser? GetUser(Guid userId)
+        public async Task<ToDoUser?> GetUser(Guid userId)
         {            
             return _usersInMemory.FirstOrDefault(curr => curr.UserId == userId);
         }
 
-        public ToDoUser? GetUserByTelegramUserId(long telegramUserId)
+        public async Task<ToDoUser?> GetUserByTelegramUserId(long telegramUserId)
         {            
             return _usersInMemory.FirstOrDefault(curr => curr.TelegramUserId == telegramUserId);
         }

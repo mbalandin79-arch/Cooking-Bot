@@ -9,8 +9,8 @@ namespace CookingBot.Core.Services
 {
     internal interface IUserService
     {
-        ToDoUser RegisterUser(long telegramUserId, string telegramUserName);
+        Task<ToDoUser> RegisterUser(long telegramUserId, string telegramUserName);
 
-        ToDoUser? GetUser(long telegramUserId);
+        Task<ToDoUser?> GetUser(long telegramUserId);
     }
 }

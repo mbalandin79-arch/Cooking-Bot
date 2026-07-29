@@ -25,7 +25,7 @@ namespace CookingBot.Core.Services
 
         private void CheckCounthLimit(Guid userId)
         {
-            if (_toDoRepository.CountActive(userId) >= _maxTasks)
+            if (_toDoRepository.CountActive(userId).Result >= _maxTasks)
                 throw new TaskCountLimitException(_maxTasks);
         }
 
@@ -39,13 +39,13 @@ namespace CookingBot.Core.Services
 
         private void CheckDuplicate(Guid userId, string name)
         {
-            if (_toDoRepository.ExistsByName(userId, name))
+            if (_toDoRepository.ExistsByName(userId, name).Result)
             {
                 throw new DuplicateTaskException(name);
             }
         }
 
-        public ToDoItem Add(ToDoUser user, string name)
+        public async Task<ToDoItem> Add(ToDoUser user, string name)
         {
             CheckCounthLimit(user.UserId);
             if (name.Length > 0)
@@ -54,34 +54,38 @@ namespace CookingBot.Core.Services
                 CheckDuplicate(user.UserId, name);
             }
 
-            _toDoRepository.Add(new ToDoItem(user, name));
+            await _toDoRepository.Add(new ToDoItem(user, name));
 
-            return _toDoRepository.Find(user.UserId, x => x.Name == name).First();
+            return _toDoRepository.Find(user.UserId, x => x.Name == name).Result.First();
         }
 
-        public void Delete(Guid id)
+        public async Task Delete(Guid id)
         {
             _toDoRepository.Delete(id);
+
+            return;
         }
 
-        public IReadOnlyList<ToDoItem> GetActiveByUserId(Guid userId)
+        public async Task<IReadOnlyList<ToDoItem>> GetActiveByUserId(Guid userId)
         {
-            return _toDoRepository.GetActiveByUserId(userId);
+            return _toDoRepository.GetActiveByUserId(userId).Result;
         }
 
-        public IReadOnlyList<ToDoItem> GetAllByUserId(Guid userId)
+        public async Task<IReadOnlyList<ToDoItem>> GetAllByUserId(Guid userId)
         {
-            return _toDoRepository.GetAllByUserId(userId);
+            return _toDoRepository.GetAllByUserId(userId).Result;
         }
 
-        public void MarkCompleted(Guid id)
+        public async Task MarkCompleted(Guid id)
         {
             if (id != default(Guid))
             {
-                ToDoItem updateItem = _toDoRepository.Get(id);
+                ToDoItem updateItem = _toDoRepository.Get(id).Result;
                 updateItem.State = ToDoItem.ToDoItemState.Completed;
                 _toDoRepository.Update(updateItem);
             }
+
+            return;
         }
 
         public void ValidateString(string str)
@@ -100,15 +104,17 @@ namespace CookingBot.Core.Services
             return answ;
         }
 
-        public void SetConfiguration(int maxTasks, int maxLengthTask)
+        public async Task SetConfiguration(int maxTasks, int maxLengthTask)
         {
             _maxTasks = maxTasks;
             _maxLengthTask = maxLengthTask;
+
+            return;
         }
 
-        public IReadOnlyList<ToDoItem> Find(ToDoUser user, string namePrefix)
+        public async Task<IReadOnlyList<ToDoItem>> Find(ToDoUser user, string namePrefix)
         {
-            return _toDoRepository.Find(user.UserId, x => x.Name.ToLower().StartsWith(namePrefix.ToLower())).ToList();
+            return _toDoRepository.Find(user.UserId, x => x.Name.ToLower().StartsWith(namePrefix.ToLower())).Result.ToList();
         }
     }
 }

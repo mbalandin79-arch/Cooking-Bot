@@ -21,12 +21,12 @@ namespace CookingBot.Core.Services
             _userRepository = (IUserRepository?)userRepository;
         }
 
-        public ToDoUser? GetUser(long telegramUserId) // поиск Пользователя в БД и возврат всей записи пользователя либо NULL
+        public async Task<ToDoUser?> GetUser(long telegramUserId) // поиск Пользователя в БД и возврат всей записи пользователя либо NULL
         {
             return _dictUsers.FirstOrDefault(curr => curr.Key == telegramUserId).Value;
         }
 
-        public ToDoUser RegisterUser(long telegramUserId, string telegramUserName)
+        public async Task<ToDoUser> RegisterUser(long telegramUserId, string telegramUserName)
         {
             _dictUsers[telegramUserId] = new ToDoUser(telegramUserId, telegramUserName);
             var answ = _dictUsers.Values.Where(w => w.TelegramUserId == telegramUserId).First();

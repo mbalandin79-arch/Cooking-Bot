@@ -13,19 +13,18 @@ namespace CookingBot.Infrastructure.DataAccess
     {
         private List<ToDoUser> _usersInMemory = new List<ToDoUser>();
 
-        public async Task Add(ToDoUser user)
+        public async Task AddAsync(ToDoUser user)
         {
             _usersInMemory.Add(user);
-
-            return;
+            //return;
         }
 
-        public async Task<ToDoUser?> GetUser(Guid userId)
+        public async Task<ToDoUser?> GetUserAsync(Guid userId)
         {            
             return _usersInMemory.FirstOrDefault(curr => curr.UserId == userId);
         }
 
-        public async Task<ToDoUser?> GetUserByTelegramUserId(long telegramUserId)
+        public async Task<ToDoUser?> GetUserByTelegramUserIdAsync(long telegramUserId)
         {            
             return _usersInMemory.FirstOrDefault(curr => curr.TelegramUserId == telegramUserId);
         }

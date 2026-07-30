@@ -20,20 +20,12 @@ namespace CookingBot.TelegramBot
         public int maxTask = 0;
         public int maxLengthTask = 0;
         string? str;
-
-        public UpdateHandler() { }
-
-        public UpdateHandler(IUserService userService, IToDoService todoService)
-        {
-            _userService = (IUserService?)userService;
-            _todoService = (IToDoService?)todoService;
-        }
-
+        
         public UpdateHandler(IUserService userService, IToDoService todoService, IToDoReportService toDoReportService)
         {
-            _userService = (IUserService?)userService;
-            _todoService = (IToDoService?)todoService;
-            _toDoReportService = (IToDoReportService?)toDoReportService;
+            _userService = userService;
+            _todoService = todoService;
+            _toDoReportService = toDoReportService;
         }
 
         public Task HandleErrorAsync(ITelegramBotClient telegramBotClient, Exception exception, CancellationToken ct)
@@ -49,7 +41,7 @@ namespace CookingBot.TelegramBot
             try
             {                
                 ToDoUser _someUser = new ToDoUser(update.Message.From.Id, update.Message.From.Username!);
-                Greeting(telegramBotClient, update, ct);
+                await GreetingAsync(telegramBotClient, update, ct);
 
                 //Console.Clear();
 
@@ -87,13 +79,12 @@ namespace CookingBot.TelegramBot
                 }
                 while (maxLengthTask <= 0);
 
-                await _todoService.SetConfiguration(maxTask, maxLengthTask);
+                await _todoService.SetConfigurationAsync(maxTask, maxLengthTask);
 
-                Work(telegramBotClient, update, ct);
+                await WorkAsync(telegramBotClient, update, ct);
 
                 Console.ReadLine();
-
-                return;
+                //return;
             }
             catch (Exception ex)
             {
@@ -131,7 +122,7 @@ namespace CookingBot.TelegramBot
             return answ;
         }
 
-        private void Greeting(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        private async Task GreetingAsync(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
         {
             //Console.Clear();
             StringBuilder str = new StringBuilder("\n");
@@ -155,11 +146,11 @@ namespace CookingBot.TelegramBot
             str.AppendLine(" Давайте попробуем?");
             str.Append(" Для продолжения нажмите Enter");
 
-            telegramBotClient.SendMessage(update.Message.Chat, str.ToString(), ct);
+            await telegramBotClient.SendMessage(update.Message.Chat, str.ToString(), ct);
             Console.ReadLine();
         }
 
-        private void Work(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        private async Task WorkAsync(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
         {
             string command = string.Empty;
 
@@ -167,26 +158,26 @@ namespace CookingBot.TelegramBot
             {
                 if (string.IsNullOrWhiteSpace(command))
                 {
-                    telegramBotClient.SendMessage(update.Message.Chat, $"{displayName}, Введите команду: ", ct);
+                    await telegramBotClient.SendMessage(update.Message.Chat, $"{displayName}, Введите команду: ", ct);
                     command = Console.ReadLine().ToLower();
                 }
 
                 switch (command)
                 {
                     case "/start":
-                        MyNameIs(telegramBotClient, update, ct);
+                        await MyNameIsAsync(telegramBotClient, update, ct);
                         command = string.Empty;
                         break;
                     case "/help":
-                        Help(telegramBotClient, update, ct);
+                        await HelpAsync(telegramBotClient, update, ct);
                         command = string.Empty;
                         break;
                     case "/info":
-                        Info(telegramBotClient, update, ct);
+                        await InfoAsync(telegramBotClient, update, ct);
                         command = string.Empty;
                         break;
                     default:
-                        telegramBotClient.SendMessage(update.Message.Chat, " Бот не знает такой команды либо эта команда недоступна\n Для просмотра доступных команд введите \"/help\"", ct);
+                        await telegramBotClient.SendMessage(update.Message.Chat, " Бот не знает такой команды либо эта команда недоступна\n Для просмотра доступных команд введите \"/help\"", ct);
                         command = string.Empty;
                         break;
                 }
@@ -194,41 +185,43 @@ namespace CookingBot.TelegramBot
             while (string.IsNullOrWhiteSpace(command));
         }
 
-        private void UserRegistration(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        private async Task UserRegistrationAsync(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
         {
             str = string.Empty;
+            ToDoUser newUser;
 
-            telegramBotClient.SendMessage(update.Message.Chat, $" Ваше отображаемое Имя \"{update.Message.From.Username}\" ", ct);
-            telegramBotClient.SendMessage(update.Message.Chat, $" Если хотите изменить, введите новое Имя. Если нет, просто нажмите Enter ", ct);
+            await telegramBotClient.SendMessage(update.Message.Chat, $" Ваше отображаемое Имя \"{update.Message.From.Username}\" ", ct);
+            await telegramBotClient.SendMessage(update.Message.Chat, $" Если хотите изменить, введите новое Имя. Если нет, просто нажмите Enter ", ct);
             str = Console.ReadLine();
             if (string.IsNullOrWhiteSpace(str))
             {
-                _userService.RegisterUser(update.Message.From.Id, update.Message.From.Username);
+                newUser = await _userService.RegisterUserAsync(update.Message.From.Id, update.Message.From.Username);
             }
             else
             {
-                _userService.RegisterUser(update.Message.From.Id, str);
+                newUser = await _userService.RegisterUserAsync(update.Message.From.Id, str);
             }
-            telegramBotClient.SendMessage(update.Message.Chat, " Зарегистрирован новый Пользователь", ct);
-            telegramBotClient.SendMessage(update.Message.Chat, $" UserId: {_userService.GetUser(update.Message.From.Id).Result.UserId}", ct);
-            telegramBotClient.SendMessage(update.Message.Chat, $" TelegramUserId: {_userService.GetUser(update.Message.From.Id).Result.TelegramUserId}", ct);
-            telegramBotClient.SendMessage(update.Message.Chat, $" TelegramUserName: {_userService.GetUser(update.Message.From.Id).Result.TelegramUserName}", ct);
-            telegramBotClient.SendMessage(update.Message.Chat, $" Registered Date: {_userService.GetUser(update.Message.From.Id).Result.RegisteredAt}", ct);
-            displayName = _userService.GetUser(update.Message.From.Id).Result.TelegramUserName;
+            await telegramBotClient.SendMessage(update.Message.Chat, " Зарегистрирован новый Пользователь", ct);
+            await telegramBotClient.SendMessage(update.Message.Chat, $" UserId: {newUser.UserId}", ct);
+            await telegramBotClient.SendMessage(update.Message.Chat, $" TelegramUserId: {newUser.TelegramUserId}", ct);
+            await telegramBotClient.SendMessage(update.Message.Chat, $" TelegramUserName: {newUser.TelegramUserName}", ct);
+            await telegramBotClient.SendMessage(update.Message.Chat, $" Registered Date: {newUser.RegisteredAt}", ct);
+            displayName = newUser.TelegramUserName;
         }
 
-        private void MyNameIs(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        private async Task MyNameIsAsync(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
         {
-            Console.Clear();
+            //Console.Clear();
+            ToDoUser? user = await _userService.GetUserAsync(update.Message.From.Id);
 
-            if (_userService.GetUser(update.Message.From.Id) == null)
+            if (user == null)
             {
-                telegramBotClient.SendMessage(update.Message.Chat, " Вы еще не зарегистрированы. Хотите принять участие в проекте \"Кулинарный Бот\"?", ct);
-                telegramBotClient.SendMessage(update.Message.Chat, " Для регистрации введите \"Y\" ", ct);
+                await telegramBotClient.SendMessage(update.Message.Chat, " Вы еще не зарегистрированы. Хотите принять участие в проекте \"Кулинарный Бот\"?", ct);
+                await telegramBotClient.SendMessage(update.Message.Chat, " Для регистрации введите \"Y\" ", ct);
                 str = Console.ReadLine().ToLower();
                 if (str == "y")
                 {
-                    UserRegistration(telegramBotClient, update, ct);
+                    await UserRegistrationAsync(telegramBotClient, update, ct);
                 }
                 else
                 {
@@ -237,7 +230,7 @@ namespace CookingBot.TelegramBot
             }
             else
             {
-                telegramBotClient.SendMessage(update.Message.Chat, $" {_userService.GetUser(update.Message.From.Id).Result.TelegramUserName} Добро пожаловать", ct);
+                await telegramBotClient.SendMessage(update.Message.Chat, $" {user.TelegramUserName} Добро пожаловать", ct);
             }
 
             string command = string.Empty;
@@ -247,7 +240,7 @@ namespace CookingBot.TelegramBot
             {
                 if (string.IsNullOrWhiteSpace(command))
                 {
-                    telegramBotClient.SendMessage(update.Message.Chat, $"{displayName}, Введите команду: ", ct);
+                    await telegramBotClient.SendMessage(update.Message.Chat, $"{displayName}, Введите команду: ", ct);
                     inputStr = Console.ReadLine().ToLower();
                     command = inputStr.Split(' ')[0];
                 }
@@ -255,46 +248,46 @@ namespace CookingBot.TelegramBot
                 switch (command)
                 {
                     case "/help":
-                        Help(telegramBotClient, update, ct);
+                        await HelpAsync(telegramBotClient, update, ct);
                         command = string.Empty;
                         break;
                     case "/info":
-                        Info(telegramBotClient, update, ct);
+                        await InfoAsync(telegramBotClient, update, ct);
                         command = string.Empty;
                         break;
                     case "/addtask":
-                        AddTask(inputStr, telegramBotClient, update, ct);
+                        await AddTaskAsync(inputStr, telegramBotClient, update, ct);
                         command = string.Empty;
                         break;
                     case "/showtasks":
-                        ShowTasks(telegramBotClient, update, ct);
+                        await ShowTasksAsync(telegramBotClient, update, ct);
                         command = string.Empty;
                         break;
                     case "/showalltasks":
-                        ShowAllTasks(telegramBotClient, update, ct);
+                        await ShowAllTasksAsync(telegramBotClient, update, ct);
                         command = string.Empty;
                         break;
                     case "/removetask":
-                        RemoveTask(inputStr, telegramBotClient, update, ct);
+                        await RemoveTaskAsync(inputStr, telegramBotClient, update, ct);
                         command = string.Empty;
                         break;
                     case "/completetask":
-                        CompleteTask(inputStr, telegramBotClient, update, ct);
+                        await CompleteTaskAsync(inputStr, telegramBotClient, update, ct);
                         command = string.Empty;
                         break;
                     case "/report":
-                        Report(telegramBotClient, update, ct);
+                        await ReportAsync(telegramBotClient, update, ct);
                         command = string.Empty;
                         break;
                     case "/find":
-                        Find(inputStr, telegramBotClient, update, ct);
+                        await FindAsync(inputStr, telegramBotClient, update, ct);
                         command = string.Empty;
                         break;
                     case "/exit":
                         Environment.Exit(0);
                         break;
                     default:
-                        telegramBotClient.SendMessage(update.Message.Chat, " Бот не знает такой команды либо эта команда недоступна\n Для просмотра доступных команд введите \"/help\"", ct);
+                        await telegramBotClient.SendMessage(update.Message.Chat, " Бот не знает такой команды либо эта команда недоступна\n Для просмотра доступных команд введите \"/help\"", ct);
                         command = string.Empty;
                         break;
                 }
@@ -302,17 +295,17 @@ namespace CookingBot.TelegramBot
             while (string.IsNullOrWhiteSpace(command));
         }
 
-        private void Help(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        private async Task HelpAsync(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
         {
             StringBuilder str = new StringBuilder("\n"); ;
             str.AppendLine(" Вам доступны следующие команды:");
-            if (_userService.GetUser(update.Message.From.Id) == null)
+            if ((await _userService.GetUserAsync(update.Message.From.Id)) == null)
             {
                 str.AppendLine(" \"/start\" - используется для начала работы");
             }
             str.AppendLine(" \"/help\" - отображает краткую информацию как пользоваться Ботом, также выводит список доступных команд во время работы");
             str.AppendLine(" \"/info\" - предоставляет информацию о версии программы и дате её создания");
-            if (_userService.GetUser(update.Message.From.Id) != null)
+            if ((await _userService.GetUserAsync(update.Message.From.Id)) != null)
             {
                 str.AppendLine(" \"/addtask Задача\" - позволяет добавить Задачу, между командой и Задачей обязательно должен быть пробел");
                 str.AppendLine(" \"/showtasks\" - отображает все \"Активные\" задачи");
@@ -323,10 +316,10 @@ namespace CookingBot.TelegramBot
                 str.AppendLine(" \"/find Имя\" - отображает все задачи зарегистрированного пользователя с именем \"Имя\", между командой и Именем обязательно должен быть пробел");
             }
             str.AppendLine(" \"/exit\" - завершает работу Бота\n");
-            telegramBotClient.SendMessage(update.Message.Chat, str.ToString(), ct);
+            await telegramBotClient.SendMessage(update.Message.Chat, str.ToString(), ct);
         }
 
-        private void Info(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        private async Task InfoAsync(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
         {
             string createDate = " Created 21.05.2026    ";
 
@@ -336,10 +329,10 @@ namespace CookingBot.TelegramBot
             AssemblyName assemblyName = assembly.GetName();
             Version version = assemblyName.Version;
 
-            telegramBotClient.SendMessage(update.Message.Chat, $"{createDate} The Version used {version}", ct);
+            await telegramBotClient.SendMessage(update.Message.Chat, $"{createDate} The Version used {version}", ct);
         }
 
-        private void AddTask(string inputStr, ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        private async Task AddTaskAsync(string inputStr, ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
         {
             try
             {
@@ -357,7 +350,7 @@ namespace CookingBot.TelegramBot
 
                 if (!string.IsNullOrWhiteSpace(newTask))
                 {
-                    ToDoItem newToDoItem = _todoService.Add(_userService.GetUser(update.Message.From.Id).Result, newTask).Result;
+                    ToDoItem newToDoItem = await _todoService.AddAsync(await _userService.GetUserAsync(update.Message.From.Id), newTask);
 
                     StringBuilder str = new StringBuilder();
                     str.AppendLine($" Задача добавлена:\n");
@@ -370,48 +363,48 @@ namespace CookingBot.TelegramBot
                     str.AppendLine($" CreatedAt: {newToDoItem.CreatedAt}\n");
                     str.AppendLine($" State: {newToDoItem.State}\n");
                     str.AppendLine($" StateCangedAt: {newToDoItem.StateCangedAt}\n");
-                    telegramBotClient.SendMessage(update.Message.Chat, str.ToString(), ct);
+                    await telegramBotClient.SendMessage(update.Message.Chat, str.ToString(), ct);
                 }
                 else
                 {
-                    telegramBotClient.SendMessage(update.Message.Chat, " Аргумент для команды \"/addtask\" отсутствует", ct);
+                    await telegramBotClient.SendMessage(update.Message.Chat, " Аргумент для команды \"/addtask\" отсутствует", ct);
                 }
             }
             catch (TaskCountLimitException e)
             {
-                telegramBotClient.SendMessage(update.Message.Chat, $"Превышено максимальное количество задач равное {e.TaskCountLimit}", ct);
+                await telegramBotClient.SendMessage(update.Message.Chat, $"Превышено максимальное количество задач равное {e.TaskCountLimit}", ct);
             }
             catch (TaskLengthLimitException e)
             {
-                telegramBotClient.SendMessage(update.Message.Chat, $"Длина задачи ‘{e.TaskLength}’ превышает максимально допустимое значение {e.TaskLengthLimit}", ct);
+                await telegramBotClient.SendMessage(update.Message.Chat, $"Длина задачи ‘{e.TaskLength}’ превышает максимально допустимое значение {e.TaskLengthLimit}", ct);
             }
             catch (DuplicateTaskException e)
             {
-                telegramBotClient.SendMessage(update.Message.Chat, $"Задача ‘{e.Task}’ уже существует", ct);
+                await telegramBotClient.SendMessage(update.Message.Chat, $"Задача ‘{e.Task}’ уже существует", ct);
             }            
         }
 
-        private void ShowTasks(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        private async Task ShowTasksAsync(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
         {
-            List<ToDoItem> listTasks = _todoService.GetAllByUserId(_userService.GetUser(update.Message.From.Id).Result.UserId).Result.ToList();
+            List<ToDoItem> listTasks = (await _todoService.GetAllByUserIdAsync((await _userService.GetUserAsync(update.Message.From.Id)).UserId)).ToList();
 
             if (listTasks.Count() > 0)
             {
                 for (int i = 0; i < listTasks.Count(); i++)
                 {
                     if (listTasks[i].State == ToDoItem.ToDoItemState.Active)
-                        telegramBotClient.SendMessage(update.Message.Chat, $"{i + 1}. {listTasks[i].Name} - {listTasks[i].CreatedAt} - {listTasks[i].Id}", ct);
+                        await telegramBotClient.SendMessage(update.Message.Chat, $"{i + 1}. {listTasks[i].Name} - {listTasks[i].CreatedAt} - {listTasks[i].Id}", ct);
                 }
             }
             else
             {
-                telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст", ct);
+                await telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст", ct);
             }
         }
 
-        private void ShowAllTasks(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        private async Task ShowAllTasksAsync(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
         {
-            List<ToDoItem> listAllTasks = _todoService.GetAllByUserId(_userService.GetUser(update.Message.From.Id).Result.UserId).Result.ToList();
+            List<ToDoItem> listAllTasks = (await _todoService.GetAllByUserIdAsync((await _userService.GetUserAsync(update.Message.From.Id)).UserId)).ToList();
 
             if (listAllTasks.Count() > 0)
             {
@@ -419,20 +412,20 @@ namespace CookingBot.TelegramBot
                 for (int i = 0; i < listAllTasks.Count(); i++)
                 {
                     if (listAllTasks[i].State == ToDoItem.ToDoItemState.Active)
-                        telegramBotClient.SendMessage(update.Message.Chat, $"{i + 1}. (Active) {listAllTasks[i].Name} - {listAllTasks[i].CreatedAt} - {listAllTasks[i].Id}", ct);
+                        await telegramBotClient.SendMessage(update.Message.Chat, $"{i + 1}. (Active) {listAllTasks[i].Name} - {listAllTasks[i].CreatedAt} - {listAllTasks[i].Id}", ct);
                     else if (listAllTasks[i].State == ToDoItem.ToDoItemState.Completed)
-                        telegramBotClient.SendMessage(update.Message.Chat, $"{i + 1}. (Complete) {listAllTasks[i].Name} - {listAllTasks[i].CreatedAt} - {listAllTasks[i].Id}", ct);
+                        await telegramBotClient.SendMessage(update.Message.Chat, $"{i + 1}. (Complete) {listAllTasks[i].Name} - {listAllTasks[i].CreatedAt} - {listAllTasks[i].Id}", ct);
                 }
             }
             else
             {
-                telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст", ct);
+                await telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст", ct);
             }
         }
 
-        private void CompleteTask(string inputStr, ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        private async Task CompleteTaskAsync(string inputStr, ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
         {
-            List<ToDoItem> listTasks = _todoService.GetActiveByUserId(_userService.GetUser(update.Message.From.Id).Result.UserId).Result.ToList();
+            List<ToDoItem> listTasks = (await _todoService.GetActiveByUserIdAsync((await _userService.GetUserAsync(update.Message.From.Id)).UserId)).ToList();
 
             if (listTasks.Count() > 0)
             {
@@ -452,33 +445,33 @@ namespace CookingBot.TelegramBot
                 {
                     if (num == default(Guid))
                     {
-                        telegramBotClient.SendMessage(update.Message.Chat, " Необходимо ввести именно Идентификатор задачи, попробуйте еще раз: ", ct);
+                        await telegramBotClient.SendMessage(update.Message.Chat, " Необходимо ввести именно Идентификатор задачи, попробуйте еще раз: ", ct);
                     }
                     else if (listTasks.Where(w => w.Id == num).Count() == 0)
                     {
-                        telegramBotClient.SendMessage(update.Message.Chat, " Задачи с таким номером нет, попробуйте еще раз: ", ct);
+                        await telegramBotClient.SendMessage(update.Message.Chat, " Задачи с таким номером нет, попробуйте еще раз: ", ct);
                     }
                     else
                     {
-                        _todoService.MarkCompleted(num);
+                        await _todoService.MarkCompletedAsync(num);
 
-                        telegramBotClient.SendMessage(update.Message.Chat, $" Команда с Именем \"{listTasks.Where(w => w.Id == num).FirstOrDefault().Name}\" выполнена", ct);
+                        await telegramBotClient.SendMessage(update.Message.Chat, $" Команда с Именем \"{listTasks.Where(w => w.Id == num).FirstOrDefault().Name}\" выполнена", ct);
                     }
                 }
                 else
                 {
-                    telegramBotClient.SendMessage(update.Message.Chat, " Аргумент для команды \"/completetask\" отсутствует", ct);
+                    await telegramBotClient.SendMessage(update.Message.Chat, " Аргумент для команды \"/completetask\" отсутствует", ct);
                 }
             }
             else
             {
-                telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст", ct);
+                await telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст", ct);
             }
         }
 
-        private void RemoveTask(string inputStr, ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        private async Task RemoveTaskAsync(string inputStr, ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
         {
-            List<ToDoItem> listAllTasks = _todoService.GetAllByUserId(_userService.GetUser(update.Message.From.Id).Result.UserId).Result.ToList();
+            List<ToDoItem> listAllTasks = (await _todoService.GetAllByUserIdAsync((await _userService.GetUserAsync(update.Message.From.Id)).UserId)).ToList();
 
             if (listAllTasks.Count() > 0)
             {
@@ -498,41 +491,41 @@ namespace CookingBot.TelegramBot
                 {
                     if (num == default(Guid))
                     {
-                        telegramBotClient.SendMessage(update.Message.Chat, " Необходимо ввести именно Идентификатор задачи, попробуйте еще раз: ", ct);
+                        await telegramBotClient.SendMessage(update.Message.Chat, " Необходимо ввести именно Идентификатор задачи, попробуйте еще раз: ", ct);
                     }
                     else if (listAllTasks.Where(w => w.Id == num).Count() == 0)
                     {
-                        telegramBotClient.SendMessage(update.Message.Chat, " Задачи с таким номером нет, попробуйте еще раз: ", ct);
+                        await telegramBotClient.SendMessage(update.Message.Chat, " Задачи с таким номером нет, попробуйте еще раз: ", ct);
                     }
                     else
                     {
-                        telegramBotClient.SendMessage(update.Message.Chat, $" Задача \"{listAllTasks.Where(w => w.Id == num).FirstOrDefault().Name}\" удалена", ct);
-                        _todoService.Delete(num);
+                        await telegramBotClient.SendMessage(update.Message.Chat, $@" Задача ""{listAllTasks.FirstOrDefault(w => w.Id == num).Name}"" удалена", ct);
+                        await _todoService.DeleteAsync(num);
                     }
                 }
-                ShowAllTasks(telegramBotClient, update, ct);
+                await ShowAllTasksAsync(telegramBotClient, update, ct);
             }
             else
             {
-                telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст", ct);
+                await telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст", ct);
             }
         }
 
-        private void Report(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
-        {            
-            var tempReportService = _toDoReportService.GetUserStats(_userService.GetUser(update.Message.From.Id).Result.UserId);
-            string _generatedAt = tempReportService.generatedAt.ToShortDateString();
-            int _total = tempReportService.total;
-            int _active = tempReportService.active;
-            int _completed = tempReportService.completed;
+        private async Task ReportAsync(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        {
+            var (total, completed, active, generatedAt) = await _toDoReportService.GetUserStatsAsync((await _userService.GetUserAsync(update.Message.From.Id)).UserId);
+            string _generatedAt = generatedAt.ToShortDateString();
+            int _total = total;
+            int _active = active;
+            int _completed = completed;
 
-            telegramBotClient.SendMessage(update.Message.Chat, $" Статистика по задачам на {_generatedAt}", ct);
-            telegramBotClient.SendMessage(update.Message.Chat, $" Всего: {_total}", ct);
-            telegramBotClient.SendMessage(update.Message.Chat, $" Завершенных: {_completed}", ct);
-            telegramBotClient.SendMessage(update.Message.Chat, $" Активных: {_active}", ct);
+            await telegramBotClient.SendMessage(update.Message.Chat, $" Статистика по задачам на {_generatedAt}", ct);
+            await telegramBotClient.SendMessage(update.Message.Chat, $" Всего: {_total}", ct);
+            await telegramBotClient.SendMessage(update.Message.Chat, $" Завершенных: {_completed}", ct);
+            await telegramBotClient.SendMessage(update.Message.Chat, $" Активных: {_active}", ct);
         }
 
-        private void Find(string inputStr, ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        private async Task FindAsync(string inputStr, ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
         {
             string namePrefix;
             if (inputStr.Length > 5)
@@ -546,23 +539,24 @@ namespace CookingBot.TelegramBot
 
             if (!string.IsNullOrWhiteSpace(namePrefix))
             {
-                List<ToDoItem> listTasks = _todoService.Find(_userService.GetUser(update.Message.From.Id).Result, namePrefix).Result.ToList();
+                ToDoUser user = await _userService.GetUserAsync(update.Message.From.Id);
+                List<ToDoItem> listTasks = (await _todoService.FindAsync(user, namePrefix)).ToList();
 
                 if (listTasks.Count() > 0)
                 {
                     for (int i = 0; i < listTasks.Count(); i++)
                     {
-                        telegramBotClient.SendMessage(update.Message.Chat, $"{i + 1}. {listTasks[i].Name} - {listTasks[i].CreatedAt} - {listTasks[i].Id}", ct);
+                        await telegramBotClient.SendMessage(update.Message.Chat, $"{i + 1}. {listTasks[i].Name} - {listTasks[i].CreatedAt} - {listTasks[i].Id}", ct);
                     }
                 }
                 else
                 {
-                    telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст", ct);
+                    await telegramBotClient.SendMessage(update.Message.Chat, " Список задач пуст", ct);
                 }
             }
             else
             {
-                telegramBotClient.SendMessage(update.Message.Chat, " Аргумент для команды \"/find\" отсутствует", ct);
+                await telegramBotClient.SendMessage(update.Message.Chat, " Аргумент для команды \"/find\" отсутствует", ct);
             }
         }
     }

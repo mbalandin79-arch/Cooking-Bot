@@ -16,16 +16,14 @@ namespace CookingBot.Core.Services
         private int _maxLengthTask = 0;
         private readonly IToDoRepository _toDoRepository;
 
-        public ToDoService() { }
-
         public ToDoService(IToDoRepository toDoRepository)
         {
-            _toDoRepository = (IToDoRepository?)toDoRepository;
+            _toDoRepository = toDoRepository;
         }
 
-        private void CheckCounthLimit(Guid userId)
+        private async Task CheckCounthLimitAsync(Guid userId)
         {
-            if (_toDoRepository.CountActive(userId).Result >= _maxTasks)
+            if (await _toDoRepository.CountActiveAsync(userId) >= _maxTasks)
                 throw new TaskCountLimitException(_maxTasks);
         }
 
@@ -37,55 +35,53 @@ namespace CookingBot.Core.Services
             }
         }
 
-        private void CheckDuplicate(Guid userId, string name)
+        private async Task CheckDuplicateAsync(Guid userId, string name)
         {
-            if (_toDoRepository.ExistsByName(userId, name).Result)
+            if (await _toDoRepository.ExistsByNameAsync(userId, name))
             {
                 throw new DuplicateTaskException(name);
             }
         }
 
-        public async Task<ToDoItem> Add(ToDoUser user, string name)
+        public async Task<ToDoItem> AddAsync(ToDoUser user, string name)
         {
-            CheckCounthLimit(user.UserId);
+            await CheckCounthLimitAsync(user.UserId);
             if (name.Length > 0)
             {
                 CheckLengthLimits(name);
-                CheckDuplicate(user.UserId, name);
+                await CheckDuplicateAsync(user.UserId, name);
             }
 
-            await _toDoRepository.Add(new ToDoItem(user, name));
-
-            return _toDoRepository.Find(user.UserId, x => x.Name == name).Result.First();
+            await _toDoRepository.AddAsync(new ToDoItem(user, name));
+            var asnc = await _toDoRepository.FindAsync(user.UserId, x => x.Name == name);
+            return (ToDoItem)asnc;
         }
 
-        public async Task Delete(Guid id)
+        public async Task DeleteAsync(Guid id)
         {
-            _toDoRepository.Delete(id);
-
-            return;
+            await _toDoRepository.DeleteAsync(id);
+            //return;
         }
 
-        public async Task<IReadOnlyList<ToDoItem>> GetActiveByUserId(Guid userId)
+        public async Task<IReadOnlyList<ToDoItem>> GetActiveByUserIdAsync(Guid userId)
         {
-            return _toDoRepository.GetActiveByUserId(userId).Result;
+            return await _toDoRepository.GetActiveByUserIdAsync(userId);
         }
 
-        public async Task<IReadOnlyList<ToDoItem>> GetAllByUserId(Guid userId)
+        public async Task<IReadOnlyList<ToDoItem>> GetAllByUserIdAsync(Guid userId)
         {
-            return _toDoRepository.GetAllByUserId(userId).Result;
+            return await _toDoRepository.GetAllByUserIdAsync(userId);
         }
 
-        public async Task MarkCompleted(Guid id)
+        public async Task MarkCompletedAsync(Guid id)
         {
             if (id != default(Guid))
             {
-                ToDoItem updateItem = _toDoRepository.Get(id).Result;
+                ToDoItem updateItem = await _toDoRepository.GetAsync(id);
                 updateItem.State = ToDoItem.ToDoItemState.Completed;
-                _toDoRepository.Update(updateItem);
+                await _toDoRepository.UpdateAsync(updateItem);
             }
-
-            return;
+            //return;
         }
 
         public void ValidateString(string str)
@@ -104,17 +100,16 @@ namespace CookingBot.Core.Services
             return answ;
         }
 
-        public async Task SetConfiguration(int maxTasks, int maxLengthTask)
+        public async Task SetConfigurationAsync(int maxTasks, int maxLengthTask)
         {
             _maxTasks = maxTasks;
             _maxLengthTask = maxLengthTask;
-
-            return;
+            //return;
         }
 
-        public async Task<IReadOnlyList<ToDoItem>> Find(ToDoUser user, string namePrefix)
+        public async Task<IReadOnlyList<ToDoItem>> FindAsync(ToDoUser user, string namePrefix)
         {
-            return _toDoRepository.Find(user.UserId, x => x.Name.ToLower().StartsWith(namePrefix.ToLower())).Result.ToList();
+            return await _toDoRepository.FindAsync(user.UserId, x => x.Name.ToLower().StartsWith(namePrefix.ToLower()));
         }
     }
 }

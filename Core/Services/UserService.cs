@@ -14,19 +14,17 @@ namespace CookingBot.Core.Services
         private ConcurrentDictionary<long, ToDoUser> _dictUsers = new ConcurrentDictionary<long, ToDoUser>();
         private readonly IUserRepository _userRepository;
 
-        public UserService() { }
-
         public UserService(IUserRepository userRepository)
         {
-            _userRepository = (IUserRepository?)userRepository;
+            _userRepository = userRepository;
         }
 
-        public async Task<ToDoUser?> GetUser(long telegramUserId) // поиск Пользователя в БД и возврат всей записи пользователя либо NULL
+        public async Task<ToDoUser?> GetUserAsync(long telegramUserId) // поиск Пользователя в БД и возврат всей записи пользователя либо NULL
         {
             return _dictUsers.FirstOrDefault(curr => curr.Key == telegramUserId).Value;
         }
 
-        public async Task<ToDoUser> RegisterUser(long telegramUserId, string telegramUserName)
+        public async Task<ToDoUser> RegisterUserAsync(long telegramUserId, string telegramUserName)
         {
             _dictUsers[telegramUserId] = new ToDoUser(telegramUserId, telegramUserName);
             var answ = _dictUsers.Values.Where(w => w.TelegramUserId == telegramUserId).First();

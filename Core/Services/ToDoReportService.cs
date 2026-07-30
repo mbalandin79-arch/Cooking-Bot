@@ -14,28 +14,21 @@ namespace CookingBot.Core.Services
         private readonly IToDoRepository _toDoRepository;
         private readonly IToDoService _todoService;
 
-        public ToDoReportService() { }
-
-        public ToDoReportService(IToDoRepository toDoRepository) 
-        {
-            _toDoRepository = (IToDoRepository?)toDoRepository;
-        }
-
         public ToDoReportService(IToDoRepository toDoRepository, IToDoService todoService)
         {
-            _toDoRepository = (IToDoRepository?)toDoRepository;
-            _todoService = (IToDoService?)todoService;
+            _toDoRepository = toDoRepository;
+            _todoService = todoService;
         }
 
-        public (int total, int completed, int active, DateTime generatedAt) GetUserStats(Guid userId)
+        public async Task<(int total, int completed, int active, DateTime generatedAt)> GetUserStatsAsync(Guid userId)
         {
             int _total;
             int _completed;
             int _active;
             DateTime _generateAt = DateTime.Now;
-                        
-            _total = _todoService.GetAllByUserId(userId).Result.Count() > 0 ? _todoService.GetAllByUserId(userId).Result.Count() : 0;
-            _active = _todoService.GetActiveByUserId(userId).Result.Count() > 0 ? _todoService.GetActiveByUserId(userId).Result.Count() : 0;
+
+            _total = (await _todoService.GetAllByUserIdAsync(userId)).Count() > 0 ? (await _todoService.GetAllByUserIdAsync(userId)).Count() : 0;
+            _active = (await _todoService.GetActiveByUserIdAsync(userId)).Count() > 0 ? (await _todoService.GetActiveByUserIdAsync(userId)).Count() : 0;
             _completed = _total > 0 ? _total - _active : 0;
 
             return (total: _total, completed: _completed, active: _active, generatedAt: _generateAt);

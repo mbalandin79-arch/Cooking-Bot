@@ -16,7 +16,6 @@ namespace CookingBot.Infrastructure.DataAccess
         public async Task AddAsync(ToDoUser user)
         {
             _usersInMemory.Add(user);
-            //return;
         }
 
         public async Task<ToDoUser?> GetUserAsync(Guid userId)

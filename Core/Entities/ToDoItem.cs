@@ -19,14 +19,14 @@ namespace CookingBot.Core.Entities
         public string Name { get; }
         public DateTime CreatedAt { get; set; }
         public ToDoItemState State { get; set; }
-        public DateTime? StateCangedAt { get; }
+        public DateTime? StateChangedAt { get; set; }
 
         public ToDoItem(ToDoUser user, string name)
         {
             User = user;
             Name = name;
             Id = Guid.NewGuid();
-            CreatedAt = DateTime.UtcNow;
+            CreatedAt = DateTime.UtcNow; // универсальная дата и время на данный момент для всех часовых поясов
             State = ToDoItemState.Active;
         }
     }

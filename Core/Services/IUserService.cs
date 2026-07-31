@@ -7,7 +7,7 @@ using CookingBot.Core.Entities;
 
 namespace CookingBot.Core.Services
 {
-    internal interface IUserService
+    public interface IUserService
     {
         Task<ToDoUser> RegisterUserAsync(long telegramUserId, string telegramUserName);
 

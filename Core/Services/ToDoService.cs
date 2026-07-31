@@ -52,15 +52,14 @@ namespace CookingBot.Core.Services
                 await CheckDuplicateAsync(user.UserId, name);
             }
 
-            await _toDoRepository.AddAsync(new ToDoItem(user, name));
-            var asnc = await _toDoRepository.FindAsync(user.UserId, x => x.Name == name);
-            return (ToDoItem)asnc;
+            var item = new ToDoItem(user, name);
+            await _toDoRepository.AddAsync(item);
+            return item;
         }
 
         public async Task DeleteAsync(Guid id)
         {
             await _toDoRepository.DeleteAsync(id);
-            //return;
         }
 
         public async Task<IReadOnlyList<ToDoItem>> GetActiveByUserIdAsync(Guid userId)
@@ -79,15 +78,15 @@ namespace CookingBot.Core.Services
             {
                 ToDoItem updateItem = await _toDoRepository.GetAsync(id);
                 updateItem.State = ToDoItem.ToDoItemState.Completed;
+                updateItem.StateChangedAt = DateTime.UtcNow; // универсальная дата и время на данный момент для всех часовых поясов
                 await _toDoRepository.UpdateAsync(updateItem);
             }
-            //return;
         }
 
         public void ValidateString(string str)
         {
             if (string.IsNullOrWhiteSpace(str))
-                throw new ArgumentException($"{0} это значение не соответствует требованиям", str);
+                throw new ArgumentException($"{str} это значение не соответствует требованиям");
         }
 
         public int ParseAndValidateInt(string str, int min, int max)
@@ -95,7 +94,7 @@ namespace CookingBot.Core.Services
             int answ = 0;
 
             if (!int.TryParse(str, out answ) || answ < min || answ > max)
-                throw new ArgumentException($"{0} это значение не соответствует требованиям", str);
+                throw new ArgumentException($"{str} это значение не соответствует требованиям");
 
             return answ;
         }
@@ -104,7 +103,6 @@ namespace CookingBot.Core.Services
         {
             _maxTasks = maxTasks;
             _maxLengthTask = maxLengthTask;
-            //return;
         }
 
         public async Task<IReadOnlyList<ToDoItem>> FindAsync(ToDoUser user, string namePrefix)

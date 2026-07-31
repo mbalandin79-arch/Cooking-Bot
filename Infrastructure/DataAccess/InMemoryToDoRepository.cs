@@ -17,18 +17,16 @@ namespace CookingBot.Infrastructure.DataAccess
         public async Task AddAsync(ToDoItem item)
         {
             _toDoItems.Add(item);
-            //return;
         }
 
         public async Task<int> CountActiveAsync(Guid userId)
         {            
-            return _toDoItems.Where(w => w.State == ToDoItem.ToDoItemState.Active).Count();
+            return _toDoItems.Where(w => w.User.UserId == userId && w.State == ToDoItem.ToDoItemState.Active).Count();
         }
 
         public async Task DeleteAsync(Guid id)
         {
             _toDoItems.Remove(_toDoItems.First(f => f.Id == id));
-            //return;
         }
 
         public async Task<bool> ExistsByNameAsync(Guid userId, string name)
@@ -74,7 +72,6 @@ namespace CookingBot.Infrastructure.DataAccess
         {
             var index = _toDoItems.IndexOf(_toDoItems.FirstOrDefault(f => f.Id == item.Id));
             _toDoItems[index] = item;
-            //return;
         }
 
         public async Task<IReadOnlyList<ToDoItem>> FindAsync(Guid userId, Func<ToDoItem, bool> predicate)

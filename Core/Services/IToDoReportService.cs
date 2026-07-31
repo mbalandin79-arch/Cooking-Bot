@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CookingBot.Core.Services
 {
-    internal interface IToDoReportService
+    public interface IToDoReportService
     {
         Task<(int total, int completed, int active, DateTime generatedAt)> GetUserStatsAsync(Guid userId);
     }

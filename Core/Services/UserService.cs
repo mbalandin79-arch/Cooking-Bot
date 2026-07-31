@@ -10,8 +10,7 @@ using CookingBot.Core.Entities;
 namespace CookingBot.Core.Services
 {
     internal class UserService : IUserService
-    {
-        private ConcurrentDictionary<long, ToDoUser> _dictUsers = new ConcurrentDictionary<long, ToDoUser>();
+    {        
         private readonly IUserRepository _userRepository;
 
         public UserService(IUserRepository userRepository)
@@ -21,14 +20,14 @@ namespace CookingBot.Core.Services
 
         public async Task<ToDoUser?> GetUserAsync(long telegramUserId) // поиск Пользователя в БД и возврат всей записи пользователя либо NULL
         {
-            return _dictUsers.FirstOrDefault(curr => curr.Key == telegramUserId).Value;
+            return await _userRepository.GetUserByTelegramUserIdAsync(telegramUserId);
         }
 
         public async Task<ToDoUser> RegisterUserAsync(long telegramUserId, string telegramUserName)
         {
-            _dictUsers[telegramUserId] = new ToDoUser(telegramUserId, telegramUserName);
-            var answ = _dictUsers.Values.Where(w => w.TelegramUserId == telegramUserId).First();
-            return answ;
+            var user = new ToDoUser(telegramUserId, telegramUserName);
+            await _userRepository.AddAsync(user);
+            return user;
         }
     }
 }

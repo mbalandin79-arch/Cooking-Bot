@@ -7,7 +7,7 @@ using CookingBot.Core.Entities;
 
 namespace CookingBot.Core.DataAccess
 {
-    internal interface IUserRepository
+    public interface IUserRepository
     {
         Task<ToDoUser?> GetUserAsync(Guid userId);
 

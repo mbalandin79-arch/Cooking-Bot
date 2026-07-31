@@ -7,7 +7,7 @@ using CookingBot.Core.Entities;
 
 namespace CookingBot.Core.DataAccess
 {
-    internal interface IToDoRepository
+    public interface IToDoRepository
     {
         // Возвращает все задачи пользователя для UserId
         Task<IReadOnlyList<ToDoItem>> GetAllByUserIdAsync(Guid userId);

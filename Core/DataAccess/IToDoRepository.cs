@@ -18,12 +18,16 @@ namespace CookingBot.Core.DataAccess
         // Возвращает все задачи пользователя, которые удовлетворяют предикате
         Task<IReadOnlyList<ToDoItem>> FindAsync(Guid userId, Func<ToDoItem, bool> predicate);
 
+        // Возвращает задачу по id
         Task<ToDoItem?> GetAsync(Guid id);
 
+        // Добавляет задачу
         Task AddAsync(ToDoItem item);
 
+        // Изменяет существующую задачу
         Task UpdateAsync(ToDoItem item);
 
+        // Удаляет задачу по id
         Task DeleteAsync(Guid id);
 
         // Проверяет есть ли задача с таким именем у пользователя

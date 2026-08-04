@@ -12,26 +12,27 @@ namespace CookingBot.Infrastructure.DataAccess
 {
     internal class InMemoryToDoRepository : IToDoRepository
     {
-        private List<ToDoItem> _toDoItems = new List<ToDoItem>();
+        private List<ToDoItem> _itemsInMemory = new List<ToDoItem>();
 
         public async Task AddAsync(ToDoItem item)
         {
-            _toDoItems.Add(item);
+            _itemsInMemory.Add(item);
         }
 
         public async Task<int> CountActiveAsync(Guid userId)
         {            
-            return _toDoItems.Where(w => w.User.UserId == userId && w.State == ToDoItem.ToDoItemState.Active).Count();
+            return _itemsInMemory.Where(w => w.User.UserId == userId && w.State == ToDoItem.ToDoItemState.Active).Count();
         }
 
         public async Task DeleteAsync(Guid id)
         {
-            _toDoItems.Remove(_toDoItems.First(f => f.Id == id));
+            var item = _itemsInMemory.First(w => w.Id == id);
+            _itemsInMemory.Remove(item);
         }
 
         public async Task<bool> ExistsByNameAsync(Guid userId, string name)
         {
-            foreach (var curr in _toDoItems)
+            foreach (var curr in _itemsInMemory)
             {
                 if (curr.User.UserId == userId && curr.Name == name)
                     return true;
@@ -41,14 +42,14 @@ namespace CookingBot.Infrastructure.DataAccess
 
         public async Task<ToDoItem?> GetAsync(Guid id)
         {
-            return _toDoItems.FirstOrDefault(curr => curr.Id == id);
+            return _itemsInMemory.FirstOrDefault(curr => curr.Id == id);
         }
 
         public async Task<IReadOnlyList<ToDoItem>> GetActiveByUserIdAsync(Guid userId)
         {
             List<ToDoItem> listTemp = new List<ToDoItem>();
 
-            foreach (var curr in _toDoItems)
+            foreach (var curr in _itemsInMemory)
             {
                 if (curr.User.UserId == userId && curr.State == ToDoItem.ToDoItemState.Active)
                     listTemp.Add(curr);
@@ -60,7 +61,7 @@ namespace CookingBot.Infrastructure.DataAccess
         {
             List<ToDoItem> listTemp = new List<ToDoItem>();
 
-            foreach (var curr in _toDoItems)
+            foreach (var curr in _itemsInMemory)
             {
                 if (curr.User.UserId == userId)
                     listTemp.Add(curr);
@@ -70,13 +71,14 @@ namespace CookingBot.Infrastructure.DataAccess
 
         public async Task UpdateAsync(ToDoItem item)
         {
-            var index = _toDoItems.IndexOf(_toDoItems.FirstOrDefault(f => f.Id == item.Id));
-            _toDoItems[index] = item;
+            var currItem = _itemsInMemory.FirstOrDefault(f => f.Id == item.Id);
+            var index = _itemsInMemory.IndexOf(currItem!);
+            _itemsInMemory[index] = item;
         }
 
         public async Task<IReadOnlyList<ToDoItem>> FindAsync(Guid userId, Func<ToDoItem, bool> predicate)
         {
-            return _toDoItems.Where(f => predicate(f) && f.User.UserId == userId).ToList();
+            return _itemsInMemory.Where(f => predicate(f) && f.User.UserId == userId).ToList();
         }
     }
 }

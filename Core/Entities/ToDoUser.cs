@@ -8,10 +8,19 @@ namespace CookingBot.Core.Entities
 {
     public class ToDoUser
     {
+        public enum ToDoUserState
+        {
+            Guest,
+            Member,
+            Advanced,
+            Moderator,
+            Admin
+        }
         public Guid UserId { get; }
-        public string TelegramUserName { get; }
+        public string TelegramUserName { get; set; }
         public DateTime RegisteredAt { get; }
         public long TelegramUserId { get; }
+        public ToDoUserState State { get; set; }
 
         public ToDoUser(long telegramUserId, string telegramUserName)
         {
@@ -19,6 +28,7 @@ namespace CookingBot.Core.Entities
             TelegramUserName = telegramUserName;
             RegisteredAt = DateTime.Now;
             UserId = Guid.NewGuid();
+            State = ToDoUserState.Guest;
         }
     }
 }

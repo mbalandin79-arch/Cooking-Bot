@@ -23,7 +23,8 @@ namespace CookingBot.Core.Services
 
         private async Task CheckCounthLimitAsync(Guid userId)
         {
-            if (await _toDoRepository.CountActiveAsync(userId) >= _maxTasks)
+            var checkCount = await _toDoRepository.CountActiveAsync(userId);
+            if (checkCount >= _maxTasks)
                 throw new TaskCountLimitException(_maxTasks);
         }
 
@@ -37,7 +38,8 @@ namespace CookingBot.Core.Services
 
         private async Task CheckDuplicateAsync(Guid userId, string name)
         {
-            if (await _toDoRepository.ExistsByNameAsync(userId, name))
+            var checkExist = await _toDoRepository.ExistsByNameAsync(userId, name);
+            if (checkExist)
             {
                 throw new DuplicateTaskException(name);
             }
@@ -59,7 +61,11 @@ namespace CookingBot.Core.Services
 
         public async Task DeleteAsync(Guid id)
         {
-            await _toDoRepository.DeleteAsync(id);
+            var item = await _toDoRepository.GetAsync(id);
+            if (id != default(Guid) && item != null)
+            {
+                await _toDoRepository.DeleteAsync(id);
+            }
         }
 
         public async Task<IReadOnlyList<ToDoItem>> GetActiveByUserIdAsync(Guid userId)
@@ -74,12 +80,12 @@ namespace CookingBot.Core.Services
 
         public async Task MarkCompletedAsync(Guid id)
         {
-            if (id != default(Guid))
+            var item = await _toDoRepository.GetAsync(id);
+            if (id != default(Guid) && item != null)
             {
-                ToDoItem updateItem = await _toDoRepository.GetAsync(id);
-                updateItem.State = ToDoItem.ToDoItemState.Completed;
-                updateItem.StateChangedAt = DateTime.UtcNow; // универсальная дата и время на данный момент для всех часовых поясов
-                await _toDoRepository.UpdateAsync(updateItem);
+                item.State = ToDoItem.ToDoItemState.Completed;
+                item.StateChangedAt = DateTime.UtcNow; // универсальная дата и время на данный момент для всех часовых поясов
+                await _toDoRepository.UpdateAsync(item);
             }
         }
 
@@ -107,6 +113,21 @@ namespace CookingBot.Core.Services
         public async Task<IReadOnlyList<ToDoItem>> FindAsync(ToDoUser user, string namePrefix)
         {
             return await _toDoRepository.FindAsync(user.UserId, x => x.Name.ToLower().StartsWith(namePrefix.ToLower()));
+        }
+
+        public async Task ChangeContentAsync(Guid id, string text)
+        {
+            var item = await _toDoRepository.GetAsync(id);
+            if (id != default(Guid) && item != null)
+            {
+                item.Content = text;
+                await _toDoRepository.UpdateAsync(item);
+            }
+        }
+
+        public async Task<ToDoItem?> GetTaskAsync(Guid id)
+        {
+            return await _toDoRepository.GetAsync(id);
         }
     }
 }

@@ -24,12 +24,7 @@ namespace CookingBot.Infrastructure.DataAccess
             _usersInMemory.Remove(user);
         }
 
-        public Task<ToDoUser?> GetAsync(Guid userId)
-        {
-            throw new NotImplementedException();
-        }
-
-        public async Task<ToDoUser?> GetUserAsync(Guid userId)
+        public async Task<ToDoUser?> GetUserByUserIdAsync(Guid userId)
         {            
             return _usersInMemory.FirstOrDefault(curr => curr.UserId == userId);
         }
@@ -39,9 +34,11 @@ namespace CookingBot.Infrastructure.DataAccess
             return _usersInMemory.FirstOrDefault(curr => curr.TelegramUserId == telegramUserId);
         }
 
-        public Task UpdateAsync(ToDoUser user)
+        public async Task UpdateAsync(ToDoUser user)
         {
-            throw new NotImplementedException();
+            var currUser = _usersInMemory.FirstOrDefault(f => f.UserId == user.UserId);
+            var index = _usersInMemory.IndexOf(currUser!);
+            _usersInMemory[index] = user;
         }
     }
 }

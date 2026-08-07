@@ -26,7 +26,7 @@ namespace CookingBot.Core.Entities
         {
             TelegramUserId = telegramUserId;
             TelegramUserName = telegramUserName;
-            RegisteredAt = DateTime.Now;
+            RegisteredAt = DateTime.UtcNow;
             UserId = Guid.NewGuid();
             State = ToDoUserState.Guest;
         }

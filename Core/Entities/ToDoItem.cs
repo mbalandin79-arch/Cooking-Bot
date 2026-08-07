@@ -15,7 +15,7 @@ namespace CookingBot.Core.Entities
         }
 
         public Guid Id { get; }
-        public ToDoUser User { get; set; }
+        public ToDoUser User { get; }
         public string Name { get; set; }
         public string? Content { get; set; }
         public DateTime CreatedAt { get; }

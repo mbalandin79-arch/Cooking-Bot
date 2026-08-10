@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace CookingBot.Core.Entities
@@ -29,6 +30,16 @@ namespace CookingBot.Core.Entities
             RegisteredAt = DateTime.UtcNow;
             UserId = Guid.NewGuid();
             State = ToDoUserState.Guest;
+        }
+
+        [JsonConstructor]
+        public ToDoUser(Guid userId, long telegramUserId, string telegramUserName, DateTime registeredAt, ToDoUserState state)
+        {
+            UserId = userId;
+            TelegramUserId = telegramUserId;
+            TelegramUserName = telegramUserName;
+            RegisteredAt = registeredAt;
+            State = state;
         }
     }
 }

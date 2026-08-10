@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Otus.ToDoList.ConsoleBot.Types;
 
 namespace CookingBot.Core.Entities
 {
@@ -29,6 +31,18 @@ namespace CookingBot.Core.Entities
             Id = Guid.NewGuid();
             CreatedAt = DateTime.UtcNow; // универсальная дата и время на данный момент для всех часовых поясов
             State = ToDoItemState.Active;
+        }
+
+        [JsonConstructor]
+        public ToDoItem(Guid id, ToDoUser user, string name, string content, DateTime createdAt, ToDoItemState state, DateTime? stateChangedAt)
+        {
+            Id = id;
+            User = user;
+            Name = name;
+            Content = content;
+            CreatedAt = createdAt;
+            State = state;
+            StateChangedAt = stateChangedAt;
         }
     }
 }

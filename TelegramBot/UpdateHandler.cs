@@ -273,9 +273,7 @@ namespace CookingBot.TelegramBot
             var parts = inputStr.Split(' ', 2);
             string selectedId = parts.Length > 1 ? parts[1] : string.Empty;
 
-            Guid num = default(Guid);
-
-            if (Guid.TryParse(selectedId, out num) && num != default(Guid))
+            if (Guid.TryParse(selectedId, out Guid num))
             {
                 var task = await _todoService.GetTaskAsync(num, ct);
 
@@ -535,7 +533,7 @@ namespace CookingBot.TelegramBot
                 var parts = inputStr.Split(' ', 2);
                 string selectedId = parts.Length > 1 ? parts[1] : string.Empty;
 
-                if (Guid.TryParse(selectedId, out Guid num) && num != default(Guid))
+                if (Guid.TryParse(selectedId, out Guid num))
                 {
                     var target = listTasks.Where(w => w.Id == num).FirstOrDefault();
                     if (target == null)
@@ -574,7 +572,7 @@ namespace CookingBot.TelegramBot
                 var parts = inputStr.Split(' ', 2);
                 string selectedId = parts.Length > 1 ? parts[1] : string.Empty;
 
-                if (Guid.TryParse(selectedId, out Guid num) && num != default(Guid))
+                if (Guid.TryParse(selectedId, out Guid num))
                 {
                     var target = listAllTasks.FirstOrDefault(w => w.Id == num);
                     if (target == null)

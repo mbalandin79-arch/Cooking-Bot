@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Дополнение к ДЗ8\Otus.ToDoList.ConsoleBot\Otus.ToDoList.ConsoleBot.csproj" />
+    <ProjectReference Include="..\Дополнение к ДЗ9\Telegram.Bot\src\Telegram.Bot\Telegram.Bot.csproj" />
   </ItemGroup>
 
 </Project>

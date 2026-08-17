@@ -3,11 +3,9 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Net;
-
 using CookingBot.Core.Services;
 using CookingBot.Infrastructure.DataAccess;
 using CookingBot.TelegramBot;
-
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;

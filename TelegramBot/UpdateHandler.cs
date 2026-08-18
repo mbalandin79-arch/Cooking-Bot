@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
-
 using CookingBot.Core.Entities;
 using CookingBot.Core.Exceptions;
 using CookingBot.Core.Services;
-
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;

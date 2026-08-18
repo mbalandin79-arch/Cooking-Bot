@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+
 using CookingBot.Core.Entities;
 using CookingBot.Core.Exceptions;
 using CookingBot.Core.Services;
+
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
@@ -485,7 +487,7 @@ namespace CookingBot.TelegramBot
                         string newTask = parts.Length > 1 ? parts[1] : string.Empty;
                         await AddTaskAsync(newTask, telegramBotClient, update.Message!.Chat, userId, ct);
                         break;
-                    }                    
+                    }
                 //case "/edittask":
                 //    await EditTaskAsync(inputStr, telegramBotClient, update, ct);
                 //    break;
@@ -501,21 +503,21 @@ namespace CookingBot.TelegramBot
                         string selectedId = parts.Length > 1 ? parts[1] : string.Empty;
                         await InfoTaskAsync(selectedId, telegramBotClient, update.Message!.Chat, ct);
                         break;
-                    }                    
+                    }
                 case "/removetask":
                     {
                         var parts = inputStr.Split(' ', 2);
                         string selectedId = parts.Length > 1 ? parts[1] : string.Empty;
                         await RemoveTaskAsync(selectedId, telegramBotClient, update.Message!.Chat, userId, ct);
                         break;
-                    }                    
+                    }
                 case "/completetask":
                     {
                         var parts = inputStr.Split(' ', 2);
                         string selectedId = parts.Length > 1 ? parts[1] : string.Empty;
                         await CompleteTaskAsync(selectedId, telegramBotClient, update.Message!.Chat, userId, ct);
                         break;
-                    }                    
+                    }
                 case "/report":
                     await ReportAsync(telegramBotClient, update.Message!.Chat, userId, ct);
                     break;
@@ -525,7 +527,7 @@ namespace CookingBot.TelegramBot
                         string namePrefix = parts.Length > 1 ? parts[1] : string.Empty;
                         await FindAsync(namePrefix, telegramBotClient, update.Message!.Chat, userId, ct);
                         break;
-                    }                    
+                    }
                 case "/exit":
                     Environment.Exit(0);
                     break;
@@ -569,7 +571,7 @@ namespace CookingBot.TelegramBot
             {
                 await telegramBotClient.SendMessage(chat, " Необходимо ввести именно Идентификатор задачи, попробуйте еще раз: ", cancellationToken: ct);
             }
-        }        
+        }
 
         private async Task MyInfoAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
         {
@@ -590,7 +592,7 @@ namespace CookingBot.TelegramBot
             {
                 await telegramBotClient.SendMessage(chat, " Вы не зарегистрированы", cancellationToken: ct);
             }
-        }               
+        }
 
         private async Task UserRegistrationAsync(ITelegramBotClient telegramBotClient, Chat chat, string? fromUsername, string text, long userId, CancellationToken ct)
         {
@@ -607,7 +609,7 @@ namespace CookingBot.TelegramBot
             str.AppendLine($" State: {newUser.State}");
             await telegramBotClient.SendMessage(chat, str.ToString(), cancellationToken: ct);
             _displayName = newUser.TelegramUserName;
-        }                
+        }
 
         private async Task MyNameIsAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, string text, CancellationToken ct)
         {
@@ -649,7 +651,7 @@ namespace CookingBot.TelegramBot
                 await telegramBotClient.SendMessage(chat, " Бот не знает такой команды либо эта команда недоступна\n Для начала работы введите \"/start\"", cancellationToken: ct);
             }
         }
-        
+
         private async Task HelpAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
         {
             var user = await _userService.GetUserAsync(userId, ct);
@@ -674,10 +676,10 @@ namespace CookingBot.TelegramBot
                 str.AppendLine(" \"/completetask Идентификатор\" - позволяет изменить состояние задачи с \"Активная\" на \"Завершенная\", между командой и Идентификатором обязательно должен быть пробел");
                 str.AppendLine(" \"/report\" - отображает статистику по задачам текущего пользователя на данный момент времени");
                 str.AppendLine(" \"/find Имя\" - отображает все задачи зарегистрированного пользователя с именем \"Имя\", между командой и Именем обязательно должен быть пробел");
+                str.AppendLine(" \"/exit\" - завершает работу Бота\n");
             }
-            str.AppendLine(" \"/exit\" - завершает работу Бота\n");
             await telegramBotClient.SendMessage(chat, str.ToString(), cancellationToken: ct);
-        }      
+        }
 
         private async Task InfoAsync(ITelegramBotClient telegramBotClient, Chat chat, CancellationToken ct)
         {
@@ -739,7 +741,7 @@ namespace CookingBot.TelegramBot
             {
                 await telegramBotClient.SendMessage(chat, e.Message, cancellationToken: ct);
             }
-        }        
+        }
 
         private async Task ShowTasksAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
         {
@@ -762,7 +764,7 @@ namespace CookingBot.TelegramBot
             {
                 await telegramBotClient.SendMessage(chat, " Список задач пуст", cancellationToken: ct);
             }
-        }        
+        }
 
         private async Task ShowAllTasksAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
         {
@@ -789,7 +791,7 @@ namespace CookingBot.TelegramBot
             {
                 await telegramBotClient.SendMessage(chat, " Список задач пуст", cancellationToken: ct);
             }
-        }        
+        }
 
         private async Task CompleteTaskAsync(string selectedId, ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
         {
@@ -825,7 +827,7 @@ namespace CookingBot.TelegramBot
             {
                 await telegramBotClient.SendMessage(chat, " Список задач пуст", cancellationToken: ct);
             }
-        }        
+        }
 
         private async Task RemoveTaskAsync(string selectedId, ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
         {
@@ -862,7 +864,7 @@ namespace CookingBot.TelegramBot
             {
                 await telegramBotClient.SendMessage(chat, " Список задач пуст", cancellationToken: ct);
             }
-        }        
+        }
 
         private async Task ReportAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
         {
@@ -879,7 +881,7 @@ namespace CookingBot.TelegramBot
             await telegramBotClient.SendMessage(chat, $" Всего: {total}", cancellationToken: ct);
             await telegramBotClient.SendMessage(chat, $" Завершенных: {completed}", cancellationToken: ct);
             await telegramBotClient.SendMessage(chat, $" Активных: {active}", cancellationToken: ct);
-        }               
+        }
 
         private async Task FindAsync(string namePrefix, ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
         {
@@ -909,7 +911,7 @@ namespace CookingBot.TelegramBot
             {
                 await telegramBotClient.SendMessage(chat, " Аргумент для команды \"/find\" отсутствует", cancellationToken: ct);
             }
-        }        
+        }
 
         private async Task ListUsersAsync(ITelegramBotClient telegramBotClient, Chat chat, CancellationToken ct)
         {

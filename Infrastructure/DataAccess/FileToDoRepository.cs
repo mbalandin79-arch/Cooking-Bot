@@ -327,5 +327,59 @@ namespace CookingBot.Infrastructure.DataAccess
                 _semaphore.Release();
             }
         }
+
+        public async Task<IReadOnlyList<ToDoItem>> GetAllAsync(CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            await _semaphore.WaitAsync(ct);
+            try
+            {
+                await EnsureIndexLoadedAsync(ct);
+                var result = new List<ToDoItem>();
+                foreach (var currIndex in _index)
+                {
+                    Guid todoId = currIndex.Key;
+                    Guid userId = currIndex.Value;
+                    var filePath = GetToDoFilePath(userId, todoId);
+                    var item = await ReadToDoItemAsync(filePath, ct);
+                    if (item != null)
+                    {
+                        result.Add(item);
+                    }
+                }
+                return result;
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
+
+        public async Task<IReadOnlyList<ToDoItem>> FindAllAsync(Func<ToDoItem, bool> predicate, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            await _semaphore.WaitAsync(ct);
+            try
+            {
+                await EnsureIndexLoadedAsync(ct);
+                var result = new List<ToDoItem>();
+                foreach (var currIndex in _index)
+                {
+                    Guid todoId = currIndex.Key;
+                    Guid userId = currIndex.Value;
+                    var filePath = GetToDoFilePath(userId, todoId);
+                    var item = await ReadToDoItemAsync(filePath, ct);
+                    if (item != null && predicate(item))
+                    {
+                        result.Add(item);
+                    }
+                }
+                return result;
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+        }
     }
 }

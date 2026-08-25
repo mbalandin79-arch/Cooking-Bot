@@ -132,7 +132,21 @@ namespace CookingBot.Core.Services
 
         public async Task<ToDoItem?> GetTaskAsync(Guid id, CancellationToken ct)
         {
+            ct.ThrowIfCancellationRequested();
             return await _toDoRepository.GetAsync(id, ct);
+        }
+
+        public async Task<IReadOnlyList<ToDoItem>> GetAllTasksAsync(CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            return await _toDoRepository.GetAllAsync(ct);
+        }
+
+        public async Task<IReadOnlyList<ToDoItem>> FindAllAsync(string namePrefix, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            var prefix = namePrefix.ToLower();
+            return await _toDoRepository.FindAllAsync(x => x.Name.ToLower().StartsWith(prefix), ct);
         }
     }
 }

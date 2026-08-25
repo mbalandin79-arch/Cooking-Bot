@@ -9,6 +9,15 @@ namespace CookingBot.Core.DataAccess
 {
     public interface IToDoRepository
     {
+        // Возвращает все задачи всех пользователей
+        // По замыслу проекта, незарегистрированный пользователь должен иметь возможность только просмотра всех Рецептов (задач)
+        Task<IReadOnlyList<ToDoItem>> GetAllAsync(CancellationToken ct);
+
+        // Возвращает все задачи, которые удовлетворяют предикате
+        // Поиск по всем задачам
+        // По замыслу проекта, незарегистрированный пользователь должен иметь возможность только просмотра всех Рецептов (задач)
+        Task<IReadOnlyList<ToDoItem>> FindAllAsync(Func<ToDoItem, bool> predicate, CancellationToken ct);
+
         // Возвращает все задачи пользователя для UserId
         Task<IReadOnlyList<ToDoItem>> GetAllByUserIdAsync(Guid userId, CancellationToken ct);
 

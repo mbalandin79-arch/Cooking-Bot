@@ -9,6 +9,15 @@ namespace CookingBot.Core.Services
 {
     public interface IToDoService
     {
+        // Возвращает все задачи всех пользователей
+        // По замыслу проекта, незарегистрированный пользователь должен иметь возможность только просмотра всех Рецептов (задач)
+        Task<IReadOnlyList<ToDoItem>> GetAllTasksAsync(CancellationToken ct);
+
+        // Возвращает все задачи, которые начинаются на namePrefix
+        // Поиск по всем задачам
+        // По замыслу проекта, незарегистрированный пользователь должен иметь возможность только просмотра всех Рецептов (задач)
+        Task<IReadOnlyList<ToDoItem>> FindAllAsync(string namePrefix, CancellationToken ct);
+
         // Возвращает все задачи для UserId
         Task<IReadOnlyList<ToDoItem>> GetAllByUserIdAsync(Guid userId, CancellationToken ct);
 

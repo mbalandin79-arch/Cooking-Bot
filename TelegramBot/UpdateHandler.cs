@@ -16,6 +16,7 @@ using static System.Collections.Specialized.BitVector32;
 using System.IO.Pipes;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Globalization;
+using System.Threading.Tasks;
 
 namespace CookingBot.TelegramBot
 {
@@ -31,7 +32,6 @@ namespace CookingBot.TelegramBot
             AwaitingRegistrationName,   // ожидает name
             AwaitingChangeName,         // ожидает новое имя
             Ready,
-            AwaitingTaskName,           // ожидает имя задачи
             AwaitingTaskIdForInfo,      // ожидает ID для /infotask
             AwaitingTaskIdForRemove,    // ожидает ID для /rempvetask
             AwaitingTaskIdForComplete,  // ожидает ID для /completetask
@@ -182,12 +182,7 @@ namespace CookingBot.TelegramBot
                             SetState(HandlerState.Ready);
                             var kbUser = await _userService.GetUserAsync(userId.Value, ct);
                             await telegramBotClient.SendMessage(update.Message!.Chat, $"{_displayName}, Вы зарегистрированы. Выберите команду:", replyMarkup: Keyboards.BuildKeyboardForUser(kbUser), cancellationToken: ct);
-                            break;
-                        case HandlerState.AwaitingTaskName:
-                            await AddTaskAsync(text, telegramBotClient, update.Message!.Chat, userId.Value, ct);
-                            SetState(HandlerState.Ready);
-                            await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, userId.Value, ct);
-                            break;
+                            break;                        
                         case HandlerState.AwaitingTaskIdForInfo:
                             await telegramBotClient.SendMessage(update.Message!.Chat, "Выберите задачу из списка выше", cancellationToken: ct);
                             break;
@@ -288,6 +283,15 @@ namespace CookingBot.TelegramBot
             // извлекаем нажатие
             var chat = callbackQuery.Message!.Chat;
             long userId = callbackQuery.From.Id;
+
+            // проверка активного сценария - callback передается в сценарий
+            var scenarioContext = await _contextRepository.GetContext(userId, ct);
+            if (scenarioContext != null)
+            {
+                var callbackUpdate = new Update { CallbackQuery = callbackQuery };
+                await ProcessScenarioAsync(telegramBotClient, callbackUpdate, scenarioContext, userId, ct);
+                return;
+            }
 
             if (_maxTask == 0)
             {
@@ -499,7 +503,7 @@ namespace CookingBot.TelegramBot
 
             if (!Guid.TryParse(parts[1], out Guid taskId))
             {
-                await telegramBotClient.SendMessage(chat, " Не удалось разобрать идентификатор задачи", cancellationToken: ct);
+                await telegramBotClient.SendMessage(chat, " Не удалось разобрать идентификатор рецепта", cancellationToken: ct);
                 return;
             }
 
@@ -510,12 +514,26 @@ namespace CookingBot.TelegramBot
                 return;
             }
             var str = new StringBuilder();
-            str.AppendLine($" Описание задачи:");
+            str.AppendLine($" Описание рецепта:");
             str.AppendLine($" Id: {task.Id}");
             str.AppendLine($" Name: {task.Name}");
             str.AppendLine($" CreatedAt: {task.CreatedAt}");
-            str.AppendLine($" Content: {task.Content ?? string.Empty}");
-            str.AppendLine($" State: {task.State}");
+            str.AppendLine($" Deadline: {task.Deadline:dd.MM.yyyy}");
+            str.AppendLine($" Category: {ToDoItem.GetCategoryName(task.Category)}");
+            str.AppendLine($" SubCategory: {task.SubCategory ?? "-"}");
+            str.AppendLine($" Ingredients: {(task.Ingredients != null && task.Ingredients.Count > 0 ? string.Join(", ", task.Ingredients) : "-")}");
+            str.AppendLine($" HiddenIngredients: {(task.HiddenIngredients != null && task.HiddenIngredients.Count > 0 ? string.Join(", ", task.HiddenIngredients) : "-")}");
+            str.AppendLine($" Steps:");
+            if (task.Steps != null && task.Steps.Count > 0)
+            {
+                for (int i = 0; i < task.Steps.Count; i++)
+                    str.AppendLine($"  {i + 1}. {task.Steps[i]}");
+            }
+            else
+            {
+                str.AppendLine("  -");
+            }
+            str.AppendLine($" State: {ToDoItem.GetStateName(task.State)}");
             str.AppendLine($" StateChangedAt: {task.StateChangedAt}");
             await telegramBotClient.SendMessage(chat, str.ToString(), cancellationToken: ct);
 
@@ -694,58 +712,7 @@ namespace CookingBot.TelegramBot
 
             await telegramBotClient.SendMessage(chat, $"{createDate} The Version used {version}", cancellationToken: ct);
         }
-
-        private async Task AddTaskAsync(string newTask, ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
-        {
-            try
-            {
-                if (!string.IsNullOrWhiteSpace(newTask))
-                {
-                    var user = await _userService.GetUserAsync(userId, ct);
-                    if (user == null)
-                    {
-                        await telegramBotClient.SendMessage(chat, " Вы не зарегистрированы. Введите \"/start\"", cancellationToken: ct);
-                        return;
-                    }
-                    var newToDoItem = await _todoService.AddAsync(user!, newTask, DateTime.UtcNow.AddDays(1), ct);  // добавлена временная заглушка
-
-                    var str = new StringBuilder();
-                    str.AppendLine($" Задача добавлена:");
-                    str.AppendLine($" Id: {newToDoItem.Id}");
-                    str.AppendLine($" User:\tUserId: {newToDoItem.User.UserId}");
-                    str.AppendLine($" \t\tTelegramUserId: {newToDoItem.User.TelegramUserId}");
-                    str.AppendLine($" \t\tTelegramUserName: {newToDoItem.User.TelegramUserName}");
-                    str.AppendLine($" \t\tRegistered Date: {newToDoItem.User.RegisteredAt}");
-                    str.AppendLine($" Name: {newToDoItem.Name}");
-                    str.AppendLine($" CreatedAt: {newToDoItem.CreatedAt}");
-                    str.AppendLine($" Content: {newToDoItem.Content ?? string.Empty}");
-                    str.AppendLine($" State: {newToDoItem.State}");
-                    str.AppendLine($" StateChangedAt: {newToDoItem.StateChangedAt}");
-                    await telegramBotClient.SendMessage(chat, str.ToString(), cancellationToken: ct);
-                }
-                else
-                {
-                    await telegramBotClient.SendMessage(chat, " Аргумент для команды \"/addtask\" отсутствует", cancellationToken: ct);
-                }
-            }
-            catch (TaskCountLimitException e)
-            {
-                await telegramBotClient.SendMessage(chat, $"Превышено максимальное количество задач равное {e.TaskCountLimit}", cancellationToken: ct);
-            }
-            catch (TaskLengthLimitException e)
-            {
-                await telegramBotClient.SendMessage(chat, $"Длина задачи ‘{e.TaskLength}’ превышает максимально допустимое значение {e.TaskLengthLimit}", cancellationToken: ct);
-            }
-            catch (DuplicateTaskException e)
-            {
-                await telegramBotClient.SendMessage(chat, $"Задача ‘{e.Task}’ уже существует", cancellationToken: ct);
-            }
-            catch (ArgumentException e)
-            {
-                await telegramBotClient.SendMessage(chat, e.Message, cancellationToken: ct);
-            }
-        }
-
+        
         private async Task ShowTasksAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
         {
             var user = await _userService.GetUserAsync(userId, ct);
@@ -785,9 +752,9 @@ namespace CookingBot.TelegramBot
                 for (int i = 0; i < listAllTasks.Count; i++)
                 {
                     if (listAllTasks[i].State == ToDoItem.ToDoItemState.Active)
-                        await telegramBotClient.SendMessage(chat, $"{i + 1}. (Active) {listAllTasks[i].Name} - {listAllTasks[i].CreatedAt} - {listAllTasks[i].Id}", cancellationToken: ct);
+                        await telegramBotClient.SendMessage(chat, $"{i + 1}. ({ToDoItem.GetStateName(listAllTasks[i].State)}) {listAllTasks[i].Name} - {listAllTasks[i].CreatedAt} - {listAllTasks[i].Id}", cancellationToken: ct);
                     else if (listAllTasks[i].State == ToDoItem.ToDoItemState.Completed)
-                        await telegramBotClient.SendMessage(chat, $"{i + 1}. (Complete) {listAllTasks[i].Name} - {listAllTasks[i].CreatedAt} - {listAllTasks[i].Id}", cancellationToken: ct);
+                        await telegramBotClient.SendMessage(chat, $"{i + 1}. ({ToDoItem.GetStateName(listAllTasks[i].State)}) {listAllTasks[i].Name} - {listAllTasks[i].CreatedAt} - {listAllTasks[i].Id}", cancellationToken: ct);
                 }
             }
             else
@@ -954,7 +921,7 @@ namespace CookingBot.TelegramBot
 
             if (!Guid.TryParse(parts[1], out Guid taskId))
             {
-                await telegramBotClient.SendMessage(chat, " Не удалось разобрать идентификатор задачи", cancellationToken: ct);
+                await telegramBotClient.SendMessage(chat, " Не удалось разобрать идентификатор рецепта", cancellationToken: ct);
                 return;
             }
 
@@ -967,12 +934,26 @@ namespace CookingBot.TelegramBot
                     return;
                 }
                 var str = new StringBuilder();
-                str.AppendLine($" Описание задачи:");
+                str.AppendLine($" Описание рецепта:");
                 str.AppendLine($" Id: {task.Id}");
                 str.AppendLine($" Name: {task.Name}");
                 str.AppendLine($" CreatedAt: {task.CreatedAt}");
-                str.AppendLine($" Content: {task.Content ?? string.Empty}");
-                str.AppendLine($" State: {task.State}");
+                str.AppendLine($" Deadline: {task.Deadline:dd.MM.yyyy}");
+                str.AppendLine($" Category: {ToDoItem.GetCategoryName(task.Category)}");
+                str.AppendLine($" SubCategory: {task.SubCategory ?? "-"}");
+                str.AppendLine($" Ingredients: {(task.Ingredients != null && task.Ingredients.Count > 0 ? string.Join(", ", task.Ingredients) : "-")}");
+                str.AppendLine($" HiddenIngredients: {(task.HiddenIngredients != null && task.HiddenIngredients.Count > 0 ? string.Join(", ", task.HiddenIngredients) : "-")}");
+                str.AppendLine($" Steps:");
+                if (task.Steps != null && task.Steps.Count > 0)
+                {
+                    for (int i = 0; i < task.Steps.Count; i++)
+                        str.AppendLine($"  {i + 1}. {task.Steps[i]}");
+                }
+                else
+                {
+                    str.AppendLine("  -");
+                }
+                str.AppendLine($" State: {ToDoItem.GetStateName(task.State)}");
                 str.AppendLine($" StateChangedAt: {task.StateChangedAt}");
                 await telegramBotClient.SendMessage(chat, str.ToString(), cancellationToken: ct);
             }
@@ -1020,8 +1001,12 @@ namespace CookingBot.TelegramBot
             if (scenario == null)
             {
                 await _contextRepository.ResetContext(userId, ct);
-                await telegramBotClient.SendMessage(update.Message!.Chat, "Сценарий не найден.", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: ct);
-                await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, userId, ct);
+                var chat = update.Message?.Chat ?? update.CallbackQuery?.Message?.Chat;
+                if (chat != null)
+                {
+                    await telegramBotClient.SendMessage(chat, "Сценарий не найден.", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: ct);
+                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
+                }
                 return;
             }
 
@@ -1033,16 +1018,24 @@ namespace CookingBot.TelegramBot
             catch (Exception ex)
             {
                 await _contextRepository.ResetContext(userId, ct);
-                await telegramBotClient.SendMessage(update.Message!.Chat, $"Ошибка при выполнении сценария: {ex.Message}", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: ct);
-                await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, userId, ct);
+                var chat = update.Message?.Chat ?? update.CallbackQuery?.Message?.Chat;
+                if (chat != null)
+                {
+                    await telegramBotClient.SendMessage(chat, $"Ошибка при выполнении сценария: {ex.Message}", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: ct);
+                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
+                }
                 return;
             }
 
             if (result == ScenarioResult.Completed)
             {
                 await _contextRepository.ResetContext(userId, ct);
-                await telegramBotClient.SendMessage(update.Message!.Chat, "✅", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: ct);
-                await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, userId, ct);
+                var chat = update.Message?.Chat ?? update.CallbackQuery?.Message?.Chat;
+                if (chat != null)
+                {
+                    await telegramBotClient.SendMessage(chat, "✅", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: ct);
+                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
+                }
             }
             else
             {

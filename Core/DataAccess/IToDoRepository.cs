@@ -44,5 +44,14 @@ namespace CookingBot.Core.DataAccess
 
         // Возвращает количество активных задач у пользователя
         Task<int> CountActiveAsync(Guid userId, CancellationToken ct);
+
+        // Поиск по ингредиенту (по списку Ingredients)
+        Task<IReadOnlyList<ToDoItem>> FindByIngredientAsync(string ingredient, CancellationToken ct);
+
+        // Поиск по категории
+        Task<IReadOnlyList<ToDoItem>> FindByCategoryAsync(ToDoItem.MainCategory category, CancellationToken ct);
+
+        // Поиск по частичному совпадению имени (содержит)
+        Task<IReadOnlyList<ToDoItem>> FindByNameContainsAsync(string namePart, CancellationToken ct);
     }
 }

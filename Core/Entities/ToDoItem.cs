@@ -17,16 +17,37 @@ namespace CookingBot.Core.Entities
             Completed
         }
 
+        public enum MainCategory
+        {
+            Other,
+            Soup,
+            Salat,
+            Main,
+            Dessert,
+            Drink,
+            Bakery,
+            Breakfast,
+            Sauce
+        }
+
         public Guid Id { get; }
         public ToDoUser User { get; }
         public string Name { get; set; }
-        public string? Content { get; set; }
+        public List<string> Steps { get; set; }
         public DateTime CreatedAt { get; }
         public ToDoItemState State { get; set; }
         public DateTime? StateChangedAt { get; set; }
-        public DateTime Deadline { get; set; }
 
-        public ToDoItem(ToDoUser user, string name, DateTime deadline)
+        // TODO: В финальной версии убрать, если не найдём применение для рецепта.
+        // Оставлено по требованию ДЗ.
+        public DateTime Deadline { get; set; }
+        public MainCategory Category { get; set; }
+        public string? SubCategory { get; set; }
+        public List<string> Ingredients { get; set; }
+        public List<string> HiddenIngredients { get; set; }
+
+
+        public ToDoItem(ToDoUser user, string name, DateTime deadline, MainCategory category, string? subCategory, List<string> ingredients, List<string> hiddenIngredients, List<string> steps)
         {
             User = user;
             Name = name;
@@ -34,19 +55,55 @@ namespace CookingBot.Core.Entities
             CreatedAt = DateTime.UtcNow; // универсальная дата и время на данный момент для всех часовых поясов
             State = ToDoItemState.Active;
             Deadline = deadline;
+            Category = category;
+            SubCategory = subCategory;
+            Ingredients = ingredients;
+            HiddenIngredients = hiddenIngredients;
+            Steps = steps;
         }
 
         [JsonConstructor]
-        public ToDoItem(Guid id, ToDoUser user, string name, string content, DateTime createdAt, ToDoItemState state, DateTime? stateChangedAt, DateTime deadline)
+        public ToDoItem(Guid id, ToDoUser user, string name, List<string> steps, DateTime createdAt, ToDoItemState state, DateTime? stateChangedAt, DateTime deadline, MainCategory category, string? subCategory, List<string> ingredients, List<string> hiddenIngredients)
         {
             Id = id;
             User = user;
             Name = name;
-            Content = content;
+            Steps = steps;
             CreatedAt = createdAt;
             State = state;
             StateChangedAt = stateChangedAt;
             Deadline = deadline;
+            Category = category;
+            SubCategory = subCategory;
+            Ingredients = ingredients;
+            HiddenIngredients = hiddenIngredients;
+        }
+
+        public static string GetCategoryName(MainCategory category)
+        {
+            return category switch
+            {
+                MainCategory.Other => "Другое",
+                MainCategory.Soup => "Суп",
+                MainCategory.Salat => "Салат",
+                MainCategory.Main => "Основное блюдо",
+                MainCategory.Dessert => "Десерт",
+                MainCategory.Drink => "Напиток",
+                MainCategory.Bakery => "Выпечка",
+                MainCategory.Breakfast => "Завтрак",
+                MainCategory.Sauce => "Соус",
+                _ => category.ToString()
+            };
+        }
+
+        public static string GetStateName(ToDoItemState state)
+        {
+            return state switch
+            {
+                ToDoItemState.Active => "Активна",
+                ToDoItemState.Completed => "Завершена",
+                _ => state.ToString()
+            };
         }
     }
 }

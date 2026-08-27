@@ -46,7 +46,7 @@ namespace CookingBot.Core.Services
             }
         }
 
-        public async Task<ToDoItem> AddAsync(ToDoUser user, string name, DateTime deadline, CancellationToken ct)
+        public async Task<ToDoItem> AddAsync(ToDoUser user, string name, DateTime deadline, ToDoItem.MainCategory category, string? subCategory, List<string> ingredients, List<string> hiddenIngredients, List<string> steps, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(name))
@@ -58,7 +58,7 @@ namespace CookingBot.Core.Services
             CheckLengthLimits(name);
             await CheckDuplicateAsync(user.UserId, name, ct);
 
-            var item = new ToDoItem(user, name, deadline);
+            var item = new ToDoItem(user, name, deadline, category, subCategory, ingredients, hiddenIngredients, steps);
             await _toDoRepository.AddAsync(item, ct);
             return item;
         }
@@ -125,7 +125,7 @@ namespace CookingBot.Core.Services
             var item = await _toDoRepository.GetAsync(id, ct);
             if (item != null)
             {
-                item.Content = text;
+                item.Steps = new List<string> { text };
                 await _toDoRepository.UpdateAsync(item, ct);
             }
         }
@@ -147,6 +147,24 @@ namespace CookingBot.Core.Services
             ct.ThrowIfCancellationRequested();
             var prefix = namePrefix.ToLower();
             return await _toDoRepository.FindAllAsync(x => x.Name.ToLower().StartsWith(prefix), ct);
+        }
+
+        public async Task<IReadOnlyList<ToDoItem>> FindByIngredientAsync(string ingredient, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            return await _toDoRepository.FindByIngredientAsync(ingredient, ct);
+        }
+
+        public async Task<IReadOnlyList<ToDoItem>> FindByCategoryAsync(ToDoItem.MainCategory category, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            return await _toDoRepository.FindByCategoryAsync(category, ct);
+        }
+
+        public async Task<IReadOnlyList<ToDoItem>> FindByNameContainsAsync(string namePart, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            return await _toDoRepository.FindByNameContainsAsync(namePart, ct);
         }
     }
 }

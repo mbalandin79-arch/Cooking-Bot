@@ -118,5 +118,37 @@ namespace CookingBot.TelegramBot
             })
             { ResizeKeyboard = true };
         }
+
+        public static InlineKeyboardMarkup BuildCategoryKeyboard()
+        {
+            return new InlineKeyboardMarkup(new[]
+            {
+                new[] { InlineKeyboardButton.WithCallbackData("Другое", "cat_Other") },
+                new[] { InlineKeyboardButton.WithCallbackData("Суп", "cat_Soup") },
+                new[] { InlineKeyboardButton.WithCallbackData("Салат", "cat_Salat") },
+                new[] { InlineKeyboardButton.WithCallbackData("Основное блюдо", "cat_Main") },
+                new[] { InlineKeyboardButton.WithCallbackData("Десерт", "cat_Dessert") },
+                new[] { InlineKeyboardButton.WithCallbackData("Напиток", "cat_Drink") },
+                new[] { InlineKeyboardButton.WithCallbackData("Выпечка", "cat_Bakery") },
+                new[] { InlineKeyboardButton.WithCallbackData("Завтрак", "cat_Breakfast") },
+                new[] { InlineKeyboardButton.WithCallbackData("Соус", "cat_Sauce") }
+            });
+        }
+
+        public static InlineKeyboardMarkup BuildSkipKeyboard()
+        {
+            return new InlineKeyboardMarkup(new[]
+            {
+                new[] { InlineKeyboardButton.WithCallbackData("Пропустить", "cat_skip") }
+            });
+        }
+
+        public static InlineKeyboardMarkup BuildDoneKeyboard()
+        {
+            return new InlineKeyboardMarkup(new[]
+            {
+                new[] { InlineKeyboardButton.WithCallbackData("Готово", "steps_done") }
+            });
+        }
     }
 }

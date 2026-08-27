@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using CookingBot.Core.DataAccess;
 using CookingBot.Core.Entities;
 using Telegram.Bot.Types;
+using System.Text.Json.Serialization;
 
 namespace CookingBot.Infrastructure.DataAccess
 {
@@ -22,7 +23,8 @@ namespace CookingBot.Infrastructure.DataAccess
         private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions()
         {
             PropertyNameCaseInsensitive = true,
-            WriteIndented = true
+            WriteIndented = true,
+            Converters = { new JsonStringEnumConverter() }
         };
 
         public FileToDoRepository(string baseDirectory = "Todos")
@@ -380,6 +382,25 @@ namespace CookingBot.Infrastructure.DataAccess
             {
                 _semaphore.Release();
             }
+        }
+
+        public async Task<IReadOnlyList<ToDoItem>> FindByIngredientAsync(string ingredient, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            return await FindAllAsync(item => item.Ingredients != null && item.Ingredients.Any(i => i.Equals(ingredient, StringComparison.OrdinalIgnoreCase)), ct);
+        }
+
+        public async Task<IReadOnlyList<ToDoItem>> FindByCategoryAsync(ToDoItem.MainCategory category, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            return await FindAllAsync(item => item.Category == category, ct);
+        }
+
+        public async Task<IReadOnlyList<ToDoItem>> FindByNameContainsAsync(string namePart, CancellationToken ct)
+        {
+            ct.ThrowIfCancellationRequested();
+            var part = namePart.ToLower();
+            return await FindAllAsync(item => item.Name != null && item.Name.ToLower().Contains(part), ct);
         }
     }
 }

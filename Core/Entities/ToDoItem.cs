@@ -45,9 +45,10 @@ namespace CookingBot.Core.Entities
         public string? SubCategory { get; set; }
         public List<string> Ingredients { get; set; }
         public List<string> HiddenIngredients { get; set; }
+        public ToDoList? List { get; }
 
 
-        public ToDoItem(ToDoUser user, string name, DateTime deadline, MainCategory category, string? subCategory, List<string> ingredients, List<string> hiddenIngredients, List<string> steps)
+        public ToDoItem(ToDoUser user, string name, DateTime deadline, MainCategory category, string? subCategory, List<string> ingredients, List<string> hiddenIngredients, List<string> steps, ToDoList? list)
         {
             User = user;
             Name = name;
@@ -60,10 +61,11 @@ namespace CookingBot.Core.Entities
             Ingredients = ingredients;
             HiddenIngredients = hiddenIngredients;
             Steps = steps;
+            List = list;
         }
 
         [JsonConstructor]
-        public ToDoItem(Guid id, ToDoUser user, string name, List<string> steps, DateTime createdAt, ToDoItemState state, DateTime? stateChangedAt, DateTime deadline, MainCategory category, string? subCategory, List<string> ingredients, List<string> hiddenIngredients)
+        public ToDoItem(Guid id, ToDoUser user, string name, List<string> steps, DateTime createdAt, ToDoItemState state, DateTime? stateChangedAt, DateTime deadline, MainCategory category, string? subCategory, List<string> ingredients, List<string> hiddenIngredients, ToDoList? list)
         {
             Id = id;
             User = user;
@@ -77,6 +79,7 @@ namespace CookingBot.Core.Entities
             SubCategory = subCategory;
             Ingredients = ingredients;
             HiddenIngredients = hiddenIngredients;
+            List = list;
         }
 
         public static string GetCategoryName(MainCategory category)

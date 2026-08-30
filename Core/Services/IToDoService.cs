@@ -28,7 +28,7 @@ namespace CookingBot.Core.Services
         Task<ToDoItem?> GetTaskAsync(Guid id, CancellationToken ct);
 
         // Добавляет задачи в общий Список и возвращает добавленную задачу
-        Task<ToDoItem> AddAsync(ToDoUser user, string name, DateTime deadline, ToDoItem.MainCategory category, string? subCategory, List<string> ingredients, List<string> hiddenIngredients, List<string> steps, CancellationToken ct);
+        Task<ToDoItem> AddAsync(ToDoUser user, string name, DateTime deadline, ToDoItem.MainCategory category, string? subCategory, List<string> ingredients, List<string> hiddenIngredients, List<string> steps, ToDoList? todoList, CancellationToken ct);
 
         // Изменяет состояние задачи в общем Списоке по id с Active на Completed 
         Task MarkCompletedAsync(Guid id, CancellationToken ct);
@@ -53,5 +53,7 @@ namespace CookingBot.Core.Services
 
         // Поиск по частичному совпадению имени (по всем пользователям)
         Task<IReadOnlyList<ToDoItem>> FindByNameContainsAsync(string namePart, CancellationToken ct);
+
+        Task<IReadOnlyList<ToDoItem>> GetByUserIdAndList(Guid userId, Guid? listId, CancellationToken ct);
     }
 }

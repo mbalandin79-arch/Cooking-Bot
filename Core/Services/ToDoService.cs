@@ -46,7 +46,7 @@ namespace CookingBot.Core.Services
             }
         }
 
-        public async Task<ToDoItem> AddAsync(ToDoUser user, string name, DateTime deadline, ToDoItem.MainCategory category, string? subCategory, List<string> ingredients, List<string> hiddenIngredients, List<string> steps, CancellationToken ct)
+        public async Task<ToDoItem> AddAsync(ToDoUser user, string name, DateTime deadline, ToDoItem.MainCategory category, string? subCategory, List<string> ingredients, List<string> hiddenIngredients, List<string> steps, ToDoList? todoList, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(name))
@@ -58,7 +58,7 @@ namespace CookingBot.Core.Services
             CheckLengthLimits(name);
             await CheckDuplicateAsync(user.UserId, name, ct);
 
-            var item = new ToDoItem(user, name, deadline, category, subCategory, ingredients, hiddenIngredients, steps);
+            var item = new ToDoItem(user, name, deadline, category, subCategory, ingredients, hiddenIngredients, steps, todoList);
             await _toDoRepository.AddAsync(item, ct);
             return item;
         }
@@ -165,6 +165,11 @@ namespace CookingBot.Core.Services
         {
             ct.ThrowIfCancellationRequested();
             return await _toDoRepository.FindByNameContainsAsync(namePart, ct);
+        }
+
+        public async Task<IReadOnlyList<ToDoItem>> GetByUserIdAndList(Guid userId, Guid? listId, CancellationToken ct)
+        {
+            throw new NotImplementedException();
         }
     }
 }

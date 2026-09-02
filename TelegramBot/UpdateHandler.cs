@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using CookingBot.Core.Entities;
 using CookingBot.Core.Exceptions;
 using CookingBot.Core.Services;
@@ -24,14 +26,12 @@ namespace CookingBot.TelegramBot
     internal class UpdateHandler : IUpdateHandler
     {
         private enum HandlerState
-        {
-            Init,                       // приветствие
-            AwaitingMaxTasks,           // ожидает maxTask
-            AwaitingMaxLength,          // ожидает maxLength
+        {            
             AwaitingStart,              // ожидает команды /start
             AwaitingRegistration,       // ожидает "Y" для регистрации
             AwaitingRegistrationName,   // ожидает name
             AwaitingChangeName,         // ожидает новое имя
+            AwaitingConfigLimit,        // ожидает новое значение лимита
             Ready,
             AwaitingTaskIdForInfo,      // ожидает ID для /infotask
             AwaitingTaskIdForRemove,    // ожидает ID для /rempvetask
@@ -46,15 +46,15 @@ namespace CookingBot.TelegramBot
         private readonly IScenarioContextRepository _contextRepository;
         private readonly IReadOnlyList<IScenario> _scenarios;
         private readonly IToDoListService _toDoListService;
-        private HandlerState _state = HandlerState.Init;
+        private HandlerState _state = HandlerState.AwaitingStart;
         private string _displayName = "Гость";
         private Guid _ChangeNameTargetUserId;
-        private int _maxTask = 0;
-        private int _maxLengthTask = 0;
+        private string _configLimitTarget = string.Empty;
+        private readonly string _settingsPath;
         private readonly object _stateSync = new object();
         private readonly SemaphoreSlim _handlelock = new SemaphoreSlim(1, 1);
 
-        public UpdateHandler(IUserService userService, IToDoService todoService, IToDoReportService toDoReportService, IScenarioContextRepository contextRepository, IReadOnlyList<IScenario> scenarios, IToDoListService toDoListService)
+        public UpdateHandler(IUserService userService, IToDoService todoService, IToDoReportService toDoReportService, IScenarioContextRepository contextRepository, IReadOnlyList<IScenario> scenarios, IToDoListService toDoListService, string settingsPath)
         {
             _userService = userService;
             _todoService = todoService;
@@ -62,6 +62,7 @@ namespace CookingBot.TelegramBot
             _contextRepository = contextRepository;
             _scenarios = scenarios;
             _toDoListService = toDoListService;
+            _settingsPath = settingsPath;
         }       
 
         public Task HandleErrorAsync(ITelegramBotClient telegramBotClient, Exception exception, HandleErrorSource source, CancellationToken ct)
@@ -121,54 +122,7 @@ namespace CookingBot.TelegramBot
                     HandlerState state = GetState();
 
                     switch (state)
-                    {
-                        case HandlerState.Init:
-                            await telegramBotClient.SendMessage(update.Message!.Chat, $"Получил '{update.Message.Text}'", cancellationToken: ct);
-                            await GreetingAsync(telegramBotClient, update, ct);
-                            await telegramBotClient.SendMessage(update.Message!.Chat, " Для начала введите максимально допустимое количество задач в диапазоне от 1 до 100: ", cancellationToken: ct);
-                            SetState(HandlerState.AwaitingMaxTasks);
-                            break;
-                        case HandlerState.AwaitingMaxTasks:
-                            try
-                            {
-                                if (string.IsNullOrWhiteSpace(text))
-                                    throw new ArgumentException("Значение не соответствует требованиям");
-                                _maxTask = ParseAndValidateInt(text, 1, 100);
-                                await telegramBotClient.SendMessage(update.Message!.Chat, " А теперь введите максимально допустимую длину задачи в диапазоне от 1 до 100: ", cancellationToken: ct);
-                                SetState(HandlerState.AwaitingMaxLength);
-                            }
-                            catch (ArgumentException e)
-                            {
-                                await telegramBotClient.SendMessage(update.Message!.Chat, $"{e.Message}. Попробуйте еще раз (1-100)", cancellationToken: ct);
-                            }
-                            break;
-                        case HandlerState.AwaitingMaxLength:
-                            try
-                            {
-                                if (string.IsNullOrWhiteSpace(text))
-                                    throw new ArgumentException("Значение не соответствует требованиям");
-                                _maxLengthTask = ParseAndValidateInt(text, 1, 100);
-                                await _todoService.SetConfigurationAsync(_maxTask, _maxLengthTask, ct);
-                                await telegramBotClient.SendMessage(update.Message!.Chat, " Конфигурация принята. Выберите \"Старт\" для начала работы.", cancellationToken: ct);
-
-                                // рисуем кнопки
-                                InlineKeyboardMarkup inlineKeyboardStart = new(new[]
-                                    {
-                                        new[] { InlineKeyboardButton.WithCallbackData("Старт", "/start") },
-                                        new[] { InlineKeyboardButton.WithCallbackData("Помощь", "/help") },
-                                        new[] { InlineKeyboardButton.WithCallbackData("Информация", "/info") }
-                                    });
-
-                                // показываем нарисованные кнопки
-                                await telegramBotClient.SendMessage(update.Message!.Chat, "Для начала работы выберите \"Старт\"", replyMarkup: inlineKeyboardStart, cancellationToken: ct);
-
-                                SetState(HandlerState.AwaitingStart);
-                            }
-                            catch (ArgumentException e)
-                            {
-                                await telegramBotClient.SendMessage(update.Message!.Chat, $"{e.Message}. Попробуйте еще раз (1-100)", cancellationToken: ct);
-                            }
-                            break;
+                    {                        
                         case HandlerState.AwaitingStart:
                             await telegramBotClient.SendMessage(update.Message!.Chat, "Используйте кнопки для управления ботом", cancellationToken: ct);
                             break;
@@ -217,6 +171,9 @@ namespace CookingBot.TelegramBot
                             await FindAllAsync(text, telegramBotClient, update.Message!.Chat, ct);
                             SetState(HandlerState.Ready);
                             await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, userId.Value, ct);
+                            break;
+                        case HandlerState.AwaitingConfigLimit:
+                            await UpdateConfigLimitAsync(telegramBotClient, update.Message!.Chat, text, ct);
                             break;
                         case HandlerState.Ready:
                             await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, userId.Value, ct);
@@ -294,15 +251,7 @@ namespace CookingBot.TelegramBot
                 var callbackUpdate = new Update { CallbackQuery = callbackQuery };
                 await ProcessScenarioAsync(telegramBotClient, callbackUpdate, scenarioContext, userId, ct);
                 return;
-            }
-
-            if (_maxTask == 0)
-            {
-                await GreetingAsync(telegramBotClient, new Update { Message = callbackQuery.Message }, ct);
-                await telegramBotClient.SendMessage(chat, "Для начала введите максимально допустимое количество задач в диапазоне от 1 до 100: ", cancellationToken: ct);
-                SetState(HandlerState.AwaitingStart);
-                return;
-            }
+            }            
 
             switch (data)
             {
@@ -466,7 +415,43 @@ namespace CookingBot.TelegramBot
                 case "admin_demote_mod":
                     await ShowUserListForStateChangeAsync(telegramBotClient, chat, "setstate_moderator", "Выберите пользователя для понижения до Moderator:", ct);
                     break;
+                case "admin_limits":
+                    await ShowLimitsAsync(telegramBotClient, chat, ct);
+                    break;
+                case "config_MaxTasks":
+                case "config_MaxLengthTask":
+                case "config_MaxListsPerUser":
+                case "config_MaxRecipesPerList":
+                    {
+                        _configLimitTarget = data.Substring("config_".Length);
+                        SetState(HandlerState.AwaitingConfigLimit);
+                        await telegramBotClient.SendMessage(chat, $"Введите новое значение для {_configLimitTarget} (1-1000):", replyMarkup: new InlineKeyboardMarkup(new[] { InlineKeyboardButton.WithCallbackData("Отмена", "admin_limits") }), cancellationToken: ct);
+                        break;
+                    }
             }
+        }
+
+        private async Task ShowLimitsAsync(ITelegramBotClient telegramBotClient, Chat chat, CancellationToken ct)
+        {
+            var (maxTasks, maxLengthTask, maxListsPerUser, maxRecipesPerList) = ReadConfigLimits();
+            var str = new StringBuilder();
+            str.AppendLine(" Текущие лимиты:");
+            str.AppendLine($" MaxTasks: {maxTasks}");
+            str.AppendLine($" MaxLengthTask: {maxLengthTask}");
+            str.AppendLine($" MaxListsPerUser: {maxListsPerUser}");
+            str.AppendLine($" MaxRecipesPerList: {maxRecipesPerList}");
+            await telegramBotClient.SendMessage(chat, str.ToString(), replyMarkup: Keyboards.BuildLimitsKeyboard(), cancellationToken: ct);
+        }
+
+        private (int maxTasks, int maxLengthTask, int maxListsPerUser, int maxRecipesPerList) ReadConfigLimits()
+        {
+            var json = File.ReadAllText(_settingsPath);
+            using var doc = JsonDocument.Parse(json);
+            int maxTasks = doc.RootElement.TryGetProperty("MaxTasks", out var mt) ? mt.GetInt32() : 100;
+            int maxLengthTask = doc.RootElement.TryGetProperty("MaxLengthTask", out var mlt) ? mlt.GetInt32() : 100;
+            int maxListsPerUser = doc.RootElement.TryGetProperty("MaxListsPerUser", out var ml) ? ml.GetInt32() : 10;
+            int maxRecipesPerList = doc.RootElement.TryGetProperty("MaxRecipesPerList", out var mr) ? mr.GetInt32() : 50;
+            return (maxTasks, maxLengthTask, maxListsPerUser, maxRecipesPerList);
         }
 
         private async Task HandlePrefixedCallbackAsync(ITelegramBotClient telegramBotClient, string data, Chat chat, long userId, CancellationToken ct)
@@ -598,16 +583,7 @@ namespace CookingBot.TelegramBot
                 await telegramBotClient.SendMessage(chat, " Список задач пуст", cancellationToken: ct);
             }
         }
-
-        private int ParseAndValidateInt(string? str, int min, int max)
-        {
-            int answ = 0;
-
-            if (!int.TryParse(str, out answ) || answ < min || answ > max)
-                throw new ArgumentException($"{str} это значение не соответствует требованиям");
-            return answ;
-        }
-
+        
         private void SetState(HandlerState newState)
         {
             lock (_stateSync)
@@ -1040,6 +1016,30 @@ namespace CookingBot.TelegramBot
             {
                 await _contextRepository.SetContext(userId, context, ct);
             }
+        }
+
+        private async Task UpdateConfigLimitAsync(ITelegramBotClient telegramBotClient, Chat chat, string text, CancellationToken ct)
+        {
+            if (!int.TryParse(text, out int value) || value < 1 || value > 1000)
+            {
+                await telegramBotClient.SendMessage(chat, "Введите число от 1 до 1000:", cancellationToken: ct);
+                return;
+            }
+
+            var json = File.ReadAllText(_settingsPath);
+            var root = JsonNode.Parse(json)?.AsObject();
+            if (root == null) return;
+
+            root[_configLimitTarget] = value;
+            await File.WriteAllTextAsync(_settingsPath, root.ToString(), ct);
+
+            var (maxTasks, maxLengthTask, maxListsPerUser, maxRecipesPerList) = ReadConfigLimits();
+            await _todoService.SetConfigurationAsync(maxTasks, maxLengthTask, maxRecipesPerList, ct);
+            await _toDoListService.SetConfigurationAsync(maxListsPerUser, ct);
+
+            await telegramBotClient.SendMessage(chat, $"{_configLimitTarget} = {value}. Лимит обновлён.", cancellationToken: ct);
+            await ShowLimitsAsync(telegramBotClient, chat, ct);
+            SetState(HandlerState.Ready);
         }
     }
 }

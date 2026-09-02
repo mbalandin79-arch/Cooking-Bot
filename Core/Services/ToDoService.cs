@@ -15,6 +15,7 @@ namespace CookingBot.Core.Services
     {
         private int _maxTasks = 0;
         private int _maxLengthTask = 0;
+        private int _maxRecipesPerList = 50;
         private readonly IToDoRepository _toDoRepository;
 
         public ToDoService(IToDoRepository toDoRepository)
@@ -57,6 +58,14 @@ namespace CookingBot.Core.Services
             await CheckCountLimitAsync(user.UserId, ct);
             CheckLengthLimits(name);
             await CheckDuplicateAsync(user.UserId, name, ct);
+            if (todoList != null)
+            {
+                var listItems = await GetByUserIdAndList(user.UserId, todoList.Id, ct);
+                if (listItems.Count >= _maxRecipesPerList)
+                {
+                    throw new TaskCountLimitException(_maxRecipesPerList);
+                }
+            }
 
             var item = new ToDoItem(user, name, deadline, category, subCategory, ingredients, hiddenIngredients, steps, todoList);
             await _toDoRepository.AddAsync(item, ct);
@@ -101,11 +110,12 @@ namespace CookingBot.Core.Services
             }
         }
 
-        public async Task SetConfigurationAsync(int maxTasks, int maxLengthTask, CancellationToken ct)
+        public async Task SetConfigurationAsync(int maxTasks, int maxLengthTask, int maxRecipesPerList, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             _maxTasks = maxTasks;
             _maxLengthTask = maxLengthTask;
+            _maxRecipesPerList = maxRecipesPerList;
             await Task.CompletedTask;
         }
 

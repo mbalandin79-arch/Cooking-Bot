@@ -87,6 +87,11 @@ namespace CookingBot.TelegramBot.Scenarios
                                 await telegramBotClient.SendMessage(chat, $"Список '{e.Task}' уже существует", cancellationToken: ct);
                                 return ScenarioResult.Completed;
                             }
+                            catch (ListCountLimitException e)
+                            {
+                                await telegramBotClient.SendMessage(chat, $"Превышено максимальное количество списков равное {e.ListCountLimit}", cancellationToken: ct);
+                                return ScenarioResult.Completed;
+                            }
                             catch (ArgumentException e)
                             {
                                 await telegramBotClient.SendMessage(chat, e.Message, cancellationToken: ct);

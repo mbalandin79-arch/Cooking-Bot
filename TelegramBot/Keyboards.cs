@@ -39,14 +39,13 @@ namespace CookingBot.TelegramBot
 
             rows.Add(new()
             {
-                InlineKeyboardButton.WithCallbackData("Добавить задачу", "/addtask")
-                //InlineKeyboardButton.WithCallbackData("Активные задачи", "/showtasks")
+                InlineKeyboardButton.WithCallbackData("Добавить задачу", "/addtask"),
+                InlineKeyboardButton.WithCallbackData("Инфо о задаче", "/infotask")
             });
             rows.Add(new()
             {
                 InlineKeyboardButton.WithCallbackData("Все задачи", "/show"),
-                //InlineKeyboardButton.WithCallbackData("Все задачи", "/showalltasks"),
-                InlineKeyboardButton.WithCallbackData("Инфо о задаче", "/infotask")
+                InlineKeyboardButton.WithCallbackData("Поиск", "/find")
             });
             rows.Add(new()
             {
@@ -59,18 +58,17 @@ namespace CookingBot.TelegramBot
                 InlineKeyboardButton.WithCallbackData("Завершить задачу", "/completetask")
             });
             rows.Add(new()
-            {
-                InlineKeyboardButton.WithCallbackData("Поиск", "/find"),
-                InlineKeyboardButton.WithCallbackData("Отчёт", "/report")
-            });
-            rows.Add(new()
-            {
-                InlineKeyboardButton.WithCallbackData("Мой профиль", "/myinfo"),
-                InlineKeyboardButton.WithCallbackData("Помощь", "/help")
+            {                
+                InlineKeyboardButton.WithCallbackData("Отчёт", "/report"),
+                InlineKeyboardButton.WithCallbackData("Мой профиль", "/myinfo")
             });
             rows.Add(new()
             {
                 InlineKeyboardButton.WithCallbackData("Информация", "/info"),
+                InlineKeyboardButton.WithCallbackData("Помощь", "/help")
+            });
+            rows.Add(new()
+            {                
                 InlineKeyboardButton.WithCallbackData("Выход", "/exit")
             });
 
@@ -98,6 +96,10 @@ namespace CookingBot.TelegramBot
                 {
                     InlineKeyboardButton.WithCallbackData("Понизить до Advanced", "admin_demote_advanced"),
                     InlineKeyboardButton.WithCallbackData("Понизить до Moderator", "admin_demote_mod")
+                });
+                rows.Add(new()
+                {
+                    InlineKeyboardButton.WithCallbackData("Лимиты", "admin_limits")
                 });
             }
 
@@ -257,6 +259,18 @@ namespace CookingBot.TelegramBot
             }
 
             return new InlineKeyboardMarkup(rows);
+        }
+
+        public static InlineKeyboardMarkup BuildLimitsKeyboard()
+        {
+            return new InlineKeyboardMarkup(new[]
+            {
+                new[] { InlineKeyboardButton.WithCallbackData("MaxTasks", "config_MaxTasks") },
+                new[] { InlineKeyboardButton.WithCallbackData("MaxLengthTask", "config_MaxLengthTask") },
+                new[] { InlineKeyboardButton.WithCallbackData("MaxListsPerUser", "config_MaxListsPerUser") },
+                new[] { InlineKeyboardButton.WithCallbackData("MaxRecipesPerList", "config_MaxRecipesPerList") },
+                new[] { InlineKeyboardButton.WithCallbackData("Назад", "mainmenu") }
+            });
         }
     }
 }

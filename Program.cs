@@ -63,6 +63,12 @@ namespace CookingBot
                 var handler = new UpdateHandler(userService, toDoService, toDoReportService, contextRepository, scenarios, toDoListService, settingsPath);
                 var botClient = new TelegramBotClient(botToken);
 
+                // Установка команд для меню BotCommand (базовый набор для всех)
+                await botClient.SetMyCommands(Keyboards.GetCommandsForUser(null), cancellationToken: cts.Token);
+
+                // Установка кнопок меню
+                await botClient.SetChatMenuButton(menuButton: new MenuButtonCommands(), cancellationToken: cts.Token);
+
                 Console.WriteLine($"Конфигурация загружена: MaxTasks={maxTasks}, MaxLengthTask={maxLengthTask}, MaxListsPerUser={maxListsPerUser}, MaxRecipesPerList={maxRecipesPerList}");
 
                 try

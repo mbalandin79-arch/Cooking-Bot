@@ -20,13 +20,14 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Globalization;
 using System.Threading.Tasks;
 using CookingBot.TelegramBot.Dto;
+using System.Collections.Concurrent;
 
 namespace CookingBot.TelegramBot
 {
     internal class UpdateHandler : IUpdateHandler
     {
         private enum HandlerState
-        {            
+        {
             AwaitingStart,              // ожидает команды /start
             AwaitingRegistration,       // ожидает "Y" для регистрации
             AwaitingRegistrationName,   // ожидает name
@@ -52,7 +53,7 @@ namespace CookingBot.TelegramBot
         private string _configLimitTarget = string.Empty;
         private readonly string _settingsPath;
         private readonly object _stateSync = new object();
-        private readonly SemaphoreSlim _handlelock = new SemaphoreSlim(1, 1);
+        private readonly ConcurrentDictionary<long, SemaphoreSlim> _userLocks = new();
 
         public UpdateHandler(IUserService userService, IToDoService todoService, IToDoReportService toDoReportService, IScenarioContextRepository contextRepository, IReadOnlyList<IScenario> scenarios, IToDoListService toDoListService, string settingsPath)
         {
@@ -63,7 +64,7 @@ namespace CookingBot.TelegramBot
             _scenarios = scenarios;
             _toDoListService = toDoListService;
             _settingsPath = settingsPath;
-        }       
+        }
 
         public Task HandleErrorAsync(ITelegramBotClient telegramBotClient, Exception exception, HandleErrorSource source, CancellationToken ct)
         {
@@ -80,7 +81,8 @@ namespace CookingBot.TelegramBot
             if (!userId.HasValue)
                 return;
 
-            await _handlelock.WaitAsync();
+            var userLock = _userLocks.GetOrAdd(userId.Value, _ => new SemaphoreSlim(1, 1));
+            await userLock.WaitAsync();
 
             try
             {
@@ -105,7 +107,55 @@ namespace CookingBot.TelegramBot
                         await _contextRepository.ResetContext(userId.Value, ct);
                     }
                     await telegramBotClient.SendMessage(message.Chat, "Сценарий отменён.", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: ct);
-                    await SendMainMenuAsync(telegramBotClient, message.Chat, userId.Value, ct);
+                    await SendMainMenuAsync(telegramBotClient, message.Chat, ct);
+                    return;
+                }
+
+                // Обработка команд из меню BotCommand
+                if (text == "/start" || text == "/cook" || text == "/me" || text == "/info" || text == "/help" || text == "/exit" || text == "/admin")
+                {
+                    var ctx = await _contextRepository.GetContext(userId.Value, ct);
+                    if (ctx != null)
+                    {
+                        await _contextRepository.ResetContext(userId.Value, ct);
+                        await telegramBotClient.SendMessage(message.Chat, "Сценарий отменён. Данные не сохранены.", cancellationToken: ct);
+                    }
+                    SetState(HandlerState.Ready);
+
+                    switch (text)
+                    {
+                        case "/start":
+                            SetState(HandlerState.AwaitingStart);
+                            await StartAsync(telegramBotClient, message.Chat, userId.Value, ct);
+                            break;
+                        case "/cook":
+                            await SendCookMenuAsync(telegramBotClient, message.Chat, userId.Value, ct);
+                            break;
+                        case "/me":
+                            await SendProfileMenuAsync(telegramBotClient, message.Chat, userId.Value, ct);
+                            break;
+                        case "/info":
+                            await InfoAsync(telegramBotClient, message.Chat, ct);
+                            break;
+                        case "/help":
+                            await HelpAsync(telegramBotClient, message.Chat, userId.Value, ct);
+                            break;
+                        case "/exit":
+                            SetState(HandlerState.AwaitingStart);
+                            await telegramBotClient.SendMessage(message.Chat, "Сессия завершена. Для начала введите /start", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: ct);
+                            break;
+                        case "/admin":
+                            var adminUser = await _userService.GetUserAsync(userId.Value, ct);
+                            if (adminUser != null && (adminUser.State == ToDoUser.ToDoUserState.Admin || adminUser.State == ToDoUser.ToDoUserState.Moderator))
+                            {
+                                await telegramBotClient.SendMessage(message.Chat, "Администрирование:", replyMarkup: Keyboards.BuildAdminMenuKeyboard(), cancellationToken: ct);
+                            }
+                            else
+                            {
+                                await telegramBotClient.SendMessage(message.Chat, "У вас нет прав доступа к этому разделу.", cancellationToken: ct);
+                            }
+                            break;
+                    }
                     return;
                 }
 
@@ -122,7 +172,7 @@ namespace CookingBot.TelegramBot
                     HandlerState state = GetState();
 
                     switch (state)
-                    {                        
+                    {
                         case HandlerState.AwaitingStart:
                             await telegramBotClient.SendMessage(update.Message!.Chat, "Используйте кнопки для управления ботом", cancellationToken: ct);
                             break;
@@ -138,8 +188,7 @@ namespace CookingBot.TelegramBot
                             await UserRegistrationAsync(telegramBotClient, update.Message!.Chat, update.Message!.From?.Username, text, userId.Value, ct);
                             SetState(HandlerState.Ready);
                             var kbUser = await _userService.GetUserAsync(userId.Value, ct);
-                            await telegramBotClient.SendMessage(update.Message!.Chat, $"{_displayName}, Вы зарегистрированы. Выберите команду:", replyMarkup: Keyboards.BuildKeyboardForUser(kbUser), cancellationToken: ct);
-                            break;                        
+                            break;
                         case HandlerState.AwaitingTaskIdForInfo:
                             await telegramBotClient.SendMessage(update.Message!.Chat, "Выберите задачу из списка выше", cancellationToken: ct);
                             break;
@@ -155,7 +204,7 @@ namespace CookingBot.TelegramBot
                                 await _userService.ChangeNameUser(_ChangeNameTargetUserId, text, ct);
                                 SetState(HandlerState.Ready);
                                 await telegramBotClient.SendMessage(update.Message!.Chat, "Имя успешно изменено", cancellationToken: ct);
-                                await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, userId.Value, ct);
+                                await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, ct);
                             }
                             else
                             {
@@ -163,20 +212,20 @@ namespace CookingBot.TelegramBot
                             }
                             break;
                         case HandlerState.AwaitingFindName:
-                            await FindAsync(text, telegramBotClient, update.Message!.Chat, userId.Value, ct);
+                            await FindMyRecipesAsync(text, telegramBotClient, update.Message!.Chat, userId.Value, ct);
                             SetState(HandlerState.Ready);
-                            await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, userId.Value, ct);
+                            await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, ct);
                             break;
                         case HandlerState.AwaitingFindAllName:
-                            await FindAllAsync(text, telegramBotClient, update.Message!.Chat, ct);
+                            await FindRecipesAsync(text, telegramBotClient, update.Message!.Chat, ct);
                             SetState(HandlerState.Ready);
-                            await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, userId.Value, ct);
+                            await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, ct);
                             break;
                         case HandlerState.AwaitingConfigLimit:
                             await UpdateConfigLimitAsync(telegramBotClient, update.Message!.Chat, text, ct);
                             break;
                         case HandlerState.Ready:
-                            await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, userId.Value, ct);
+                            await SendMainMenuAsync(telegramBotClient, update.Message!.Chat, ct);
                             break;
                     }
                 }
@@ -202,11 +251,29 @@ namespace CookingBot.TelegramBot
             }
             finally
             {
-                _handlelock.Release();
+                userLock.Release();
             }
         }
 
-        private async Task FindAllAsync(string namePrefix, ITelegramBotClient telegramBotClient, Chat chat, CancellationToken ct)
+        private async Task SendCookMenuAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
+        {
+            var user = await _userService.GetUserAsync(userId, ct);
+            bool isRegistered = user != null;
+            await telegramBotClient.SendMessage(chat, "Работа с рецептами:", replyMarkup: Keyboards.BuildCookMenuKeyboard(isRegistered), cancellationToken: ct);
+        }
+
+        private async Task SendProfileMenuAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
+        {
+            var user = await _userService.GetUserAsync(userId, ct);
+            if (user == null)
+            {
+                await telegramBotClient.SendMessage(chat, "Вы не зарегистрированы. Введите /start", cancellationToken: ct);
+                return;
+            }
+            await telegramBotClient.SendMessage(chat, "Профиль:", replyMarkup: Keyboards.BuildProfileMenuKeyboard(user.UserId), cancellationToken: ct);
+        }
+
+        private async Task FindRecipesAsync(string namePrefix, ITelegramBotClient telegramBotClient, Chat chat, CancellationToken ct)
         {
             if (!string.IsNullOrWhiteSpace(namePrefix))
             {
@@ -251,42 +318,11 @@ namespace CookingBot.TelegramBot
                 var callbackUpdate = new Update { CallbackQuery = callbackQuery };
                 await ProcessScenarioAsync(telegramBotClient, callbackUpdate, scenarioContext, userId, ct);
                 return;
-            }            
+            }
 
             switch (data)
             {
-                case "/start":
-                    SetState(HandlerState.AwaitingStart);
-                    await MyNameIsAsync(telegramBotClient, chat, userId, ct);
-                    break;
-                case "/help":
-                    await HelpAsync(telegramBotClient, chat, userId, ct);
-                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
-                    break;
-                case "/info":
-                    await InfoAsync(telegramBotClient, chat, ct);
-                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
-                    break;
-                case "/myinfo":
-                    await MyInfoAsync(telegramBotClient, chat, userId, ct);
-                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
-                    break;
-                case "/show":
-                    await ShowListsAsync(telegramBotClient, chat, userId, ct);
-                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
-                    break;
-                case "/alltasks":
-                    await ShowAllTasksAsyncAsButtonsAsync(telegramBotClient, chat, ct);
-                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
-                    break;
-                case "/report":
-                    await ReportAsync(telegramBotClient, chat, userId, ct);
-                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
-                    break;
-                case "/exit":
-                    Environment.Exit(0);
-                    break;
-                case "/addlist":
+                case "addlist":
                     {
                         var ctxList = new ScenarioContext(ScenarioType.AddList);
                         ctxList.UserId = userId;
@@ -295,7 +331,7 @@ namespace CookingBot.TelegramBot
                         await ProcessScenarioAsync(telegramBotClient, startUpdateList, ctxList, userId, ct);
                         break;
                     }
-                case "/deletelist":
+                case "deletelist":
                     {
                         var ctxDel = new ScenarioContext(ScenarioType.DeleteList);
                         ctxDel.UserId = userId;
@@ -304,32 +340,13 @@ namespace CookingBot.TelegramBot
                         await ProcessScenarioAsync(telegramBotClient, startUpdateDel, ctxDel, userId, ct);
                         break;
                     }
-                case "/addtask":
-                    var ctx = new ScenarioContext(ScenarioType.AddTask);
-                    ctx.UserId = userId;
-                    await telegramBotClient.SendMessage(chat, "Режим добавления задачи. Для отмены нажмите \"Отмена\".", replyMarkup: Keyboards.BuildCancelKeyboard(), cancellationToken: ct);
-                    var startUpdate = new Update { Message = callbackQuery.Message };
-                    await ProcessScenarioAsync(telegramBotClient, startUpdate, ctx, userId, ct);
-                    break;
-                case "/infotask":
+                case "infotask":
                     SetState(HandlerState.AwaitingTaskIdForInfo);
                     await ShowTasksForActionAsync(telegramBotClient, chat, userId, "taskinfo", "Выберите задачу для просмотра информации:", ct);
                     break;
-                case "/removetask":
-                    SetState(HandlerState.AwaitingTaskIdForRemove);
-                    await ShowTasksForActionAsync(telegramBotClient, chat, userId, "taskremove", "Выберите задачу для удаления:", ct);
-                    break;
-                case "/completetask":
+                case "completetask":
                     SetState(HandlerState.AwaitingTaskIdForComplete);
                     await ShowTasksForActionAsync(telegramBotClient, chat, userId, "taskcomplete", "Выберите задачу для завершения:", ct);
-                    break;
-                case "/find":
-                    SetState(HandlerState.AwaitingFindName);
-                    await telegramBotClient.SendMessage(chat, "Введите имя для поиска:", replyMarkup: new InlineKeyboardMarkup(new[] { InlineKeyboardButton.WithCallbackData("Отмена", "mainmenu") }), cancellationToken: ct);
-                    break;
-                case "/findall":
-                    SetState(HandlerState.AwaitingFindAllName);
-                    await telegramBotClient.SendMessage(chat, "Введите имя для поиска:", replyMarkup: new InlineKeyboardMarkup(new[] { InlineKeyboardButton.WithCallbackData("Отмена", "mainmenu") }), cancellationToken: ct);
                     break;
                 // регистрация
                 case "reg_yes":
@@ -339,15 +356,45 @@ namespace CookingBot.TelegramBot
                     break;
                 case "mainmenu":
                     SetState(HandlerState.Ready);
-                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
+                    await SendMainMenuAsync(telegramBotClient, chat, ct);
+                    break;
+                // Подменю "Рецепты"
+                case "add_recipe":
+                    {
+                        var ctxAdd = new ScenarioContext(ScenarioType.AddTask);
+                        ctxAdd.UserId = userId;
+                        await telegramBotClient.SendMessage(chat, "Добавление рецепта. Для отмены нажмите \"Отмена\".", replyMarkup: Keyboards.BuildCancelKeyboard(), cancellationToken: ct);
+                        var startUpdateAdd = new Update { Message = callbackQuery.Message };
+                        await ProcessScenarioAsync(telegramBotClient, startUpdateAdd, ctxAdd, userId, ct);
+                        break;
+                    }
+                case "find_recipe":
+                case "findall_recipe":
+                    SetState(HandlerState.AwaitingFindAllName);
+                    await telegramBotClient.SendMessage(chat, "Введите имя для поиска:", replyMarkup: new InlineKeyboardMarkup(new[] { InlineKeyboardButton.WithCallbackData("Отмена", "mainmenu") }), cancellationToken: ct);
+                    break;
+                case "findmy_recipe":
+                    SetState(HandlerState.AwaitingFindName);
+                    await telegramBotClient.SendMessage(chat, "Введите имя для поиска:", replyMarkup: new InlineKeyboardMarkup(new[] { InlineKeyboardButton.WithCallbackData("Отмена", "mainmenu") }), cancellationToken: ct);
+                    break;
+                case "show_recipes":
+                case "showall_recipes":
+                    await ShowAllRecipesAsync(telegramBotClient, chat, ct);
+                    break;
+                case "showmy_recipes":
+                    await ShowListsAsync(telegramBotClient, chat, userId, ct);
+                    break;
+                case "del_recipe":
+                    SetState(HandlerState.AwaitingTaskIdForRemove);
+                    await ShowTasksForActionAsync(telegramBotClient, chat, userId, "taskremove", "Выберите рецепт для удаления:", ct);
                     break;
                 // только для модераторов/администраторов
-                case "mod_listusers":                    
-                case "mod_promote_member":                    
-                case "mod_demote_guest":                   
-                case "admin_promote_mod":                    
-                case "admin_promote_admin":                    
-                case "admin_demote_advanced":                    
+                case "mod_listusers":
+                case "mod_promote_member":
+                case "mod_demote_guest":
+                case "admin_promote_mod":
+                case "admin_promote_admin":
+                case "admin_demote_advanced":
                 case "admin_demote_mod":
                     await HandleAdminCallbackAsync(telegramBotClient, data, chat, userId, ct);
                     break;
@@ -383,7 +430,6 @@ namespace CookingBot.TelegramBot
                         await UserRegistrationAsync(telegramBotClient, chat, callbackQuery.From?.Username, string.Empty, userId, ct);
                         SetState(HandlerState.Ready);
                         var regUser = await _userService.GetUserAsync(userId, ct);
-                        await telegramBotClient.SendMessage(chat, $"{_displayName}, Вы зарегистрированы. Выберите команду:", replyMarkup: Keyboards.BuildKeyboardForUser(regUser), cancellationToken: ct);
                         break;
                     }
             }
@@ -395,7 +441,7 @@ namespace CookingBot.TelegramBot
             {
                 case "mod_listusers":
                     await ListUsersAsync(telegramBotClient, chat, ct);
-                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
+                    await SendMainMenuAsync(telegramBotClient, chat, ct);
                     break;
                 case "mod_promote_member":
                     await ShowUserListForStateChangeAsync(telegramBotClient, chat, "setstate_member", "Выберите пользователя для повышения до Member:", ct);
@@ -492,8 +538,15 @@ namespace CookingBot.TelegramBot
                 if (Guid.TryParse(data.Substring("confirmdelete_".Length), out Guid targetUserId))
                 {
                     await _userService.DeleteUserByUserIdAsync(targetUserId, ct);
-                    await telegramBotClient.SendMessage(chat, "Ваш аккаунт удалён. Для регистрации выберите \"Старт\"", replyMarkup: Keyboards.BuildKeyboardForUser(null), cancellationToken: ct);
                 }
+            }
+            else if (data.StartsWith("profil_"))
+            {
+                await ShowProfileInfoAsync(telegramBotClient, chat, userId, ct);
+            }
+            else if (data.StartsWith("show_report_"))
+            {
+                await ReportAsync(telegramBotClient, chat, userId, ct);
             }
             else if (data.StartsWith("show|"))
             {
@@ -540,7 +593,7 @@ namespace CookingBot.TelegramBot
             str.AppendLine($" CreatedAt: {task.CreatedAt}");
             str.AppendLine($" Deadline: {task.Deadline:dd.MM.yyyy}");
             str.AppendLine($" Category: {ToDoItem.GetCategoryName(task.Category)}");
-            str.AppendLine($" SubCategory: {task.SubCategory ?? "-"}");
+            str.AppendLine($" SubCategory: {task.List?.Name ?? "-"}");
             str.AppendLine($" Ingredients: {(task.Ingredients != null && task.Ingredients.Count > 0 ? string.Join(", ", task.Ingredients) : "-")}");
             str.AppendLine($" HiddenIngredients: {(task.HiddenIngredients != null && task.HiddenIngredients.Count > 0 ? string.Join(", ", task.HiddenIngredients) : "-")}");
             str.AppendLine($" Steps:");
@@ -558,10 +611,9 @@ namespace CookingBot.TelegramBot
             await telegramBotClient.SendMessage(chat, str.ToString(), cancellationToken: ct);
 
             var kbUser = await _userService.GetUserAsync(userId, ct);
-            await telegramBotClient.SendMessage(chat, " Текущее меню:", replyMarkup: Keyboards.BuildKeyboardForUser(kbUser), cancellationToken: ct);
         }
 
-        private async Task ShowAllTasksAsyncAsButtonsAsync(ITelegramBotClient telegramBotClient, Chat chat, CancellationToken ct)
+        private async Task ShowAllRecipesAsync(ITelegramBotClient telegramBotClient, Chat chat, CancellationToken ct)
         {
             var listAllTasks = await _todoService.GetAllTasksAsync(ct);
 
@@ -583,7 +635,7 @@ namespace CookingBot.TelegramBot
                 await telegramBotClient.SendMessage(chat, " Список задач пуст", cancellationToken: ct);
             }
         }
-        
+
         private void SetState(HandlerState newState)
         {
             lock (_stateSync)
@@ -600,27 +652,29 @@ namespace CookingBot.TelegramBot
             }
         }
 
-        private async Task SendMainMenuAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
+        private async Task SendMainMenuAsync(ITelegramBotClient telegramBotClient, Chat chat, CancellationToken ct)
         {
-            var user = await _userService.GetUserAsync(userId, ct);
-            await telegramBotClient.SendMessage(chat, "Главное меню:", replyMarkup: Keyboards.BuildKeyboardForUser(user), cancellationToken: ct);
+            await telegramBotClient.SendMessage(chat, "Выберите раздел в меню ☰", cancellationToken: ct);
         }
 
-        private async Task GreetingAsync(ITelegramBotClient telegramBotClient, Update update, CancellationToken ct)
+        private async Task ShowGreetingAsync(ITelegramBotClient telegramBotClient, Chat chat, CancellationToken ct)
         {
             var str = new StringBuilder("\n");
             str.AppendLine(" Приветствую Вас в проекте \"Кулинарный бот\"\n");
-            str.AppendLine(" Перед началом работы Бота вам доступны следующие команды:");
-            str.AppendLine(" \"Старт\" - используется для начала работы");
-            str.AppendLine(" \"Помощь\" - отображает краткую информацию как пользоваться Ботом, также выводит список доступных команд во время работы");
-            str.AppendLine(" \"Информация\" - предоставляет информацию о версии программы и дате её создания");
+            str.AppendLine(" В процессе работы бота Вам будет доступно меню ☰ (слева от поля ввода)");
+            str.AppendLine(" \"/start\" - используется для начала работы");
+            str.AppendLine(" \"/cook\" - используется для работы с рецептами");
+            str.AppendLine(" \"/my\" - используется для просмотра и редактирования своего профиля (доступно только для зарегистрированных пользователей)");
+            str.AppendLine(" \"/help\" - отображает краткую информацию как пользоваться Ботом, также выводит список доступных команд во время работы");
+            str.AppendLine(" \"/info\" - предоставляет информацию о версии программы и дате её создания");
+            str.AppendLine(" \"/exit\" - завершает сессию работы зарегистрированного пользователя");
             str.AppendLine(" В процессе работы перечень доступных команд будет меняться");
-            str.AppendLine(" Команды следует выбирать нажатием соответствующей кнопки");
+            str.AppendLine(" Команды следует выбирать из меню ☰");
             str.AppendLine(" Некоторым командам потребуются дополнительные данные, об этом будет указано в описании команды\n");
-            await telegramBotClient.SendMessage(update.Message!.Chat, str.ToString(), cancellationToken: ct);
+            await telegramBotClient.SendMessage(chat, str.ToString(), cancellationToken: ct);
         }
 
-        private async Task MyInfoAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
+        private async Task ShowProfileInfoAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
         {
             var myUser = await _userService.GetUserAsync(userId, ct);
 
@@ -660,8 +714,10 @@ namespace CookingBot.TelegramBot
             await telegramBotClient.SendMessage(chat, "Кнопки быстрого доступа доступны внизу чата.", replyMarkup: Keyboards.BuildMainReplyKeyboard(), cancellationToken: ct);
         }
 
-        private async Task MyNameIsAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
+        private async Task StartAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
         {
+            await ShowGreetingAsync(telegramBotClient, chat, ct);
+
             ToDoUser? user = await _userService.GetUserAsync(userId, ct);
 
             if (user == null)
@@ -680,7 +736,6 @@ namespace CookingBot.TelegramBot
                 _displayName = user.TelegramUserName;
                 await telegramBotClient.SendMessage(chat, $" {user.TelegramUserName} Добро пожаловать", cancellationToken: ct);
                 SetState(HandlerState.Ready);
-                await telegramBotClient.SendMessage(chat, $"{_displayName}, Выберите команду: ", replyMarkup: Keyboards.BuildKeyboardForUser(user), cancellationToken: ct);
             }
         }
 
@@ -755,7 +810,7 @@ namespace CookingBot.TelegramBot
             await telegramBotClient.SendMessage(chat, $" Активных: {active}", cancellationToken: ct);
         }
 
-        private async Task FindAsync(string namePrefix, ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
+        private async Task FindMyRecipesAsync(string namePrefix, ITelegramBotClient telegramBotClient, Chat chat, long userId, CancellationToken ct)
         {
             if (!string.IsNullOrWhiteSpace(namePrefix))
             {
@@ -839,7 +894,7 @@ namespace CookingBot.TelegramBot
             {
                 await telegramBotClient.SendMessage(chat, "Список активных задач пуст", cancellationToken: ct);
                 SetState(HandlerState.Ready);
-                await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
+                await SendMainMenuAsync(telegramBotClient, chat, ct);
                 return;
             }
 
@@ -885,7 +940,6 @@ namespace CookingBot.TelegramBot
             await telegramBotClient.SendMessage(chat, $" Пользователь \"{userName}\" теперь имеет статус: {targetState}", cancellationToken: ct);
 
             var adminUser = await _userService.GetUserAsync(adminUserId, ct);
-            await telegramBotClient.SendMessage(chat, " Текущее меню:", replyMarkup: Keyboards.BuildKeyboardForUser(adminUser), cancellationToken: ct);
         }
 
         private async Task HandleTaskActionCallbackAsync(ITelegramBotClient telegramBotClient, Chat chat, string data, long userId, string action, CancellationToken ct)
@@ -915,7 +969,7 @@ namespace CookingBot.TelegramBot
                 str.AppendLine($" CreatedAt: {task.CreatedAt}");
                 str.AppendLine($" Deadline: {task.Deadline:dd.MM.yyyy}");
                 str.AppendLine($" Category: {ToDoItem.GetCategoryName(task.Category)}");
-                str.AppendLine($" SubCategory: {task.SubCategory ?? "-"}");
+                str.AppendLine($" SubCategory: {task.List?.Name ?? "-"}");
                 str.AppendLine($" Ingredients: {(task.Ingredients != null && task.Ingredients.Count > 0 ? string.Join(", ", task.Ingredients) : "-")}");
                 str.AppendLine($" HiddenIngredients: {(task.HiddenIngredients != null && task.HiddenIngredients.Count > 0 ? string.Join(", ", task.HiddenIngredients) : "-")}");
                 str.AppendLine($" Steps:");
@@ -956,7 +1010,6 @@ namespace CookingBot.TelegramBot
             }
 
             var kbUser = await _userService.GetUserAsync(userId, ct);
-            await telegramBotClient.SendMessage(chat, " Текущее меню:", replyMarkup: Keyboards.BuildKeyboardForUser(kbUser), cancellationToken: ct);
         }
 
         private IScenario? GetScenario(ScenarioType type)
@@ -980,7 +1033,7 @@ namespace CookingBot.TelegramBot
                 if (chat != null)
                 {
                     await telegramBotClient.SendMessage(chat, "Сценарий не найден.", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: ct);
-                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
+                    await SendMainMenuAsync(telegramBotClient, chat, ct);
                 }
                 return;
             }
@@ -997,7 +1050,7 @@ namespace CookingBot.TelegramBot
                 if (chat != null)
                 {
                     await telegramBotClient.SendMessage(chat, $"Ошибка при выполнении сценария: {ex.Message}", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: ct);
-                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
+                    await SendMainMenuAsync(telegramBotClient, chat, ct);
                 }
                 return;
             }
@@ -1009,7 +1062,7 @@ namespace CookingBot.TelegramBot
                 if (chat != null)
                 {
                     await telegramBotClient.SendMessage(chat, "✅", replyMarkup: new ReplyKeyboardRemove(), cancellationToken: ct);
-                    await SendMainMenuAsync(telegramBotClient, chat, userId, ct);
+                    await SendMainMenuAsync(telegramBotClient, chat, ct);
                 }
             }
             else

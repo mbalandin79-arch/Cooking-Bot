@@ -47,7 +47,7 @@ namespace CookingBot.Core.Services
             }
         }
 
-        public async Task<ToDoItem> AddAsync(ToDoUser user, string name, DateTime deadline, ToDoItem.MainCategory category, string? subCategory, List<string> ingredients, List<string> hiddenIngredients, List<string> steps, ToDoList? todoList, CancellationToken ct)
+        public async Task<ToDoItem> AddAsync(ToDoUser user, string name, DateTime deadline, ToDoItem.MainCategory category, List<string> ingredients, List<string> hiddenIngredients, List<string> steps, ToDoList? todoList, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(name))
@@ -67,7 +67,7 @@ namespace CookingBot.Core.Services
                 }
             }
 
-            var item = new ToDoItem(user, name, deadline, category, subCategory, ingredients, hiddenIngredients, steps, todoList);
+            var item = new ToDoItem(user, name, deadline, category, ingredients, hiddenIngredients, steps, todoList);
             await _toDoRepository.AddAsync(item, ct);
             return item;
         }

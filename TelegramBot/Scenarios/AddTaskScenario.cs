@@ -10,6 +10,7 @@ using System.Xml.Linq;
 using CookingBot.Core.Entities;
 using CookingBot.Core.Exceptions;
 using CookingBot.Core.Services;
+using CookingBot.Helpers;
 using CookingBot.TelegramBot.Dto;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -143,7 +144,7 @@ namespace CookingBot.TelegramBot.Scenarios
                         {
                             list = await _todoListService.GetAsync(dto.ToDoListId.Value, ct);
                         }
-                        context.Data["list"] = list;
+                        context.Data["list"] = list!;
 
                         await telegramBotClient.SendMessage(chat, "Введите ингредиенты через запятую. По ним будет доступен поиск рецепта.\nПример: мука, сахар, яйца\nХотя бы один — обязательно.", cancellationToken: ct);
                         context.CurrentStep = "Ingredients";
@@ -342,6 +343,7 @@ namespace CookingBot.TelegramBot.Scenarios
             }
             catch (Exception e)
             {
+                FileLogger.LogError(e, "AddTaskScenario");
                 await telegramBotClient.SendMessage(chat, $"Непредвиденная ошибка: {e.Message}", cancellationToken: ct);
                 return ScenarioResult.Completed;
             }

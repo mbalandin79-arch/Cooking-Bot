@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using CookingBot.Core.Entities;
 using CookingBot.Core.Exceptions;
 using CookingBot.Core.Services;
+using CookingBot.Helpers;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using static CookingBot.TelegramBot.Scenarios.ScenarioContext;
@@ -95,6 +96,7 @@ namespace CookingBot.TelegramBot.Scenarios
                         }
                         catch (Exception e)
                         {
+                            FileLogger.LogError(e, "AddListScenario");
                             await telegramBotClient.SendMessage(chat, $"Непредвиденная ошибка: {e.Message}", cancellationToken: ct);
                             return ScenarioResult.Completed;
                         }

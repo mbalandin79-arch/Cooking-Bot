@@ -58,7 +58,8 @@ namespace CookingBot
                 {
                     new AddTaskScenario(userService, toDoService, toDoListService),
                     new AddListScenario(userService, toDoListService),
-                    new DeleteListScenario(userService, toDoListService, toDoService)
+                    new DeleteListScenario(userService, toDoListService, toDoService),
+                    new DeleteTaskScenario(toDoService)
                 };
                 var handler = new UpdateHandler(userService, toDoService, toDoReportService, contextRepository, scenarios, toDoListService, settingsPath);
                 var botClient = new TelegramBotClient(botToken);

@@ -17,10 +17,10 @@ namespace CookingBot.Core.Entities
             Moderator,
             Admin
         }
-        public Guid UserId { get; }
+        public Guid UserId { get; set; }
         public string TelegramUserName { get; set; }
-        public DateTime RegisteredAt { get; }
-        public long TelegramUserId { get; }
+        public DateTime RegisteredAt { get; set; }
+        public long TelegramUserId { get; set; }
         public ToDoUserState State { get; set; }
 
         public ToDoUser(long telegramUserId, string telegramUserName)

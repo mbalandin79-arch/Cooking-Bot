@@ -30,17 +30,17 @@ namespace CookingBot.Core.Entities
             Sauce
         }
 
-        public Guid Id { get; }
-        public ToDoUser User { get; }
+        public Guid Id { get; set; }
+        public ToDoUser User { get; set; }
         public string Name { get; set; }
         public List<string> Steps { get; set; }
-        public DateTime CreatedAt { get; }
+        public DateTime CreatedAt { get; set; }
         public ToDoItemState State { get; set; }
         public DateTime? StateChangedAt { get; set; }
         public MainCategory Category { get; set; }
         public List<string> Ingredients { get; set; }
         public List<string> HiddenIngredients { get; set; }
-        public ToDoList? List { get; }
+        public ToDoList? List { get; set; }
 
 
         public ToDoItem(ToDoUser user, string name, MainCategory category, List<string> ingredients, List<string> hiddenIngredients, List<string> steps, ToDoList? list)

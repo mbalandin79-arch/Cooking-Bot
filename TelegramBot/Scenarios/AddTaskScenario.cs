@@ -338,7 +338,6 @@ namespace CookingBot.TelegramBot.Scenarios
                 str.AppendLine($" Id: {item.Id}");
                 str.AppendLine($" Name: {item.Name}");
                 str.AppendLine($" CreatedAt: {item.CreatedAt}");
-                str.AppendLine($" Deadline: {item.Deadline:dd.MM.yyyy}");
                 str.AppendLine($" Category: {ToDoItem.GetCategoryName(item.Category)}");
                 str.AppendLine($" Ingredients: {string.Join(", ", item.Ingredients)}");
                 str.AppendLine($" HiddenIngredients: {(item.HiddenIngredients.Count > 0 ? string.Join(", ", item.HiddenIngredients) : "-")}");

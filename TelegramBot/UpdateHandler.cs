@@ -893,7 +893,6 @@ namespace CookingBot.TelegramBot
                         str.AppendLine($" Id: {task.Id}");
                         str.AppendLine($" Name: {task.Name}");
                         str.AppendLine($" CreatedAt: {task.CreatedAt}");
-                        str.AppendLine($" Deadline: {task.Deadline:dd.MM.yyyy}");
                         str.AppendLine($" Category: {ToDoItem.GetCategoryName(task.Category)}");
                         str.AppendLine($" SubCategory: {task.List?.Name ?? "-"}");
                         var ingredients = task.Ingredients != null && task.Ingredients.Count > 0 ?

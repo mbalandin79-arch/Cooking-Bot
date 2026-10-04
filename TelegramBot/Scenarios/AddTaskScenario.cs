@@ -331,7 +331,7 @@ namespace CookingBot.TelegramBot.Scenarios
 
             try
             {
-                var item = await _todoService.AddAsync(toDoUser, taskName, deadline, category, ingredients, hiddenIngredients, steps, list, ct);
+                var item = await _todoService.AddAsync(toDoUser, taskName, category, ingredients, hiddenIngredients, steps, list, ct);
 
                 var str = new StringBuilder();
                 str.AppendLine("Рецепт добавлен:");

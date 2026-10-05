@@ -42,37 +42,6 @@ namespace CookingBot.Core.Entities
         public List<string> HiddenIngredients { get; set; }
         public ToDoList? List { get; set; }
 
-
-        public ToDoItem(ToDoUser user, string name, MainCategory category, List<string> ingredients, List<string> hiddenIngredients, List<string> steps, ToDoList? list)
-        {
-            User = user;
-            Name = name;
-            Id = Guid.NewGuid();
-            CreatedAt = DateTime.UtcNow; // универсальная дата и время на данный момент для всех часовых поясов
-            State = ToDoItemState.Active;
-            Category = category;
-            Ingredients = ingredients;
-            HiddenIngredients = hiddenIngredients;
-            Steps = steps;
-            List = list;
-        }
-
-        [JsonConstructor]
-        public ToDoItem(Guid id, ToDoUser user, string name, List<string> steps, DateTime createdAt, ToDoItemState state, DateTime? stateChangedAt, MainCategory category, List<string> ingredients, List<string> hiddenIngredients, ToDoList? list)
-        {
-            Id = id;
-            User = user;
-            Name = name;
-            Steps = steps;
-            CreatedAt = createdAt;
-            State = state;
-            StateChangedAt = stateChangedAt;
-            Category = category;
-            Ingredients = ingredients;
-            HiddenIngredients = hiddenIngredients;
-            List = list;
-        }
-
         public static string GetCategoryName(MainCategory category)
         {
             return category switch

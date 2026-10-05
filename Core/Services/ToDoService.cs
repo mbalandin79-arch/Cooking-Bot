@@ -69,7 +69,19 @@ namespace CookingBot.Core.Services
                 }
             }
 
-            var item = new ToDoItem(user, name, category, ingredients, hiddenIngredients, steps, todoList);
+            var item = new ToDoItem
+            {
+                Id = Guid.NewGuid(),
+                User = user,
+                Name = name,
+                Steps = steps,
+                CreatedAt = DateTime.UtcNow,
+                State = ToDoItem.ToDoItemState.Active,
+                Category = category,
+                Ingredients = ingredients,
+                HiddenIngredients = hiddenIngredients,
+                List = todoList
+            };
             await _toDoRepository.AddAsync(item, ct);
             return item;
         }

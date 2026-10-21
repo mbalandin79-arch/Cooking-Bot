@@ -10,6 +10,7 @@ using CookingBot.Infrastructure.DataAccess;
 using CookingBot.TelegramBot;
 using CookingBot.TelegramBot.Scenarios;
 using CookingBot.Helpers;
+using CookingBot.BackgroundTasks;
 using Telegram.Bot;
 using Telegram.Bot.Polling;
 using Telegram.Bot.Types;
@@ -122,10 +123,24 @@ namespace CookingBot
                     },
                     DropPendingUpdates = true
                 };
+
+                // Фоновые задачи: создаем раннер и регистрируем в нем задачи
+                using var runner = new BackgroundTaskRunner();
+                runner.AddTask(new ResetScenarioBackgroundTask(TimeSpan.FromHours(1), contextRepository, botClient));
+
+                // Запуск фоновых задач - до запуска приема сообщений ботом
+                // (StartTasks возвращает void: он только стартует задачи и сразу выходит)
+                runner.StartTasks(cts.Token);
+
                 botClient.StartReceiving(handler, receiverOptions, cts.Token);
 
                 Console.WriteLine("Бот запущен. Нажмите ESC для остановки");
                 while (Console.ReadKey(true).Key != ConsoleKey.Escape) ;
+
+                // Остановка фоновых задач - до отмены CancellationTokenSource
+                Console.WriteLine("Остановка фоновых задач...");
+                await runner.StopTasks(cts.Token);
+
                 cts.Cancel();
                 Console.WriteLine("Остановка бота...");
             }

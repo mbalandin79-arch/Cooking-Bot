@@ -30,7 +30,7 @@ namespace CookingBot.TelegramBot.Scenarios
         /// <summary>Создаёт сценарий добавления рецепта.</summary>
         /// <param name="userService">Сервис пользователей (проверка регистрации).</param>
         /// <param name="toDoService">Сервис рецептов (создание рецепта).</param>
-        /// <param name="todoListService">Сервис разделов (список подкатегорий, создание новой).</param>
+        /// <param name="toDoListService">Сервис разделов (список подкатегорий, создание новой).</param>
         public AddTaskScenario(IUserService userService, IToDoService toDoService, IToDoListService toDoListService)
         {
             _userService = userService;

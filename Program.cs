@@ -43,6 +43,7 @@ namespace CookingBot
                 if (errorMessage != null)
                 {
                     Console.WriteLine(errorMessage);
+                    WaitBeforeExit();
                     return;
                 }
 
@@ -58,6 +59,7 @@ namespace CookingBot
                 if (resetScenarioRunIntervalHours <= 0 || resetScenarioTimeoutHours <= 0)
                 {
                     Console.WriteLine("Настройки фоновых задач в appsettings.json должны быть целыми положительными числами (ResetScenarioRunIntervalHours, ResetScenarioTimeoutHours).");
+                    WaitBeforeExit();
                     return;
                 }
 
@@ -66,6 +68,7 @@ namespace CookingBot
                 if (string.IsNullOrEmpty(connectionString) || connectionString == "Put_Your_Connection_String_Here") 
                 {
                     Console.WriteLine("Строка подключения к базе данных не задана в appsettings.json (ConnectionString).");
+                    WaitBeforeExit();
                     return;
                 }
 
@@ -86,6 +89,7 @@ namespace CookingBot
                 {
                     Console.WriteLine("Не удалось подключиться к базе данных: " + ex.Message);
                     Console.WriteLine("Проверьте строку ConnectionString в appsettings.json (и запущен ли PostgreSQL).");
+                    WaitBeforeExit();
                     return;
                 }
 
@@ -110,14 +114,11 @@ namespace CookingBot
                 var handler = new UpdateHandler(userService, toDoService, toDoReportService, contextRepository, scenarios, toDoListService, settingsPath);
                 var botClient = new TelegramBotClient(botToken);
 
-                // Установка команд для меню BotCommand (базовый набор для всех)
-                await botClient.SetMyCommands(Keyboards.GetCommandsForUser(null), cancellationToken: cts.Token);
-
-                // Установка кнопок меню
-                await botClient.SetChatMenuButton(menuButton: new MenuButtonCommands(), cancellationToken: cts.Token);
-
-                Console.WriteLine($"Конфигурация загружена: MaxTasks={maxTasks}, MaxLengthTask={maxLengthTask}, MaxListsPerUser={maxListsPerUser}, MaxRecipesPerList={maxRecipesPerList}");
-
+                // Ранняя проверка связи с Telegram и токена
+                // (аналогично проверке БД выше):
+                // GetMe выполняется до установки меню,
+                // чтобы при отсутствии сети или неверном токене бота
+                // печатал понятное сообщение и не запускался
                 try
                 {
                     var me = await botClient.GetMe(cts.Token);
@@ -126,13 +127,24 @@ namespace CookingBot
                 catch (Telegram.Bot.Exceptions.ApiRequestException ex) when (ex.ErrorCode == 401)
                 {
                     Console.WriteLine("Неверный токен бота (Unauthorized). Проверьте appsettings.json.");
+                    WaitBeforeExit();
                     return;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Ошибка при вызове GetMe: {ex.Message}");
+                    Console.WriteLine("Нет соединения с Telegram: " + ex.Message);
+                    Console.WriteLine("Проверьте подключение к Интернету (и токен в appsettings.json).");
+                    WaitBeforeExit();
                     return;
                 }
+
+                Console.WriteLine($"Конфигурация загружена: MaxTasks={maxTasks}, MaxLengthTask={maxLengthTask}, MaxListsPerUser={maxListsPerUser}, MaxRecipesPerList={maxRecipesPerList}");
+
+                // Установка команд для меню BotCommand (базовый набор для всех)
+                await botClient.SetMyCommands(Keyboards.GetCommandsForUser(null), cancellationToken: cts.Token);
+
+                // Установка кнопок меню
+                await botClient.SetChatMenuButton(menuButton: new MenuButtonCommands(), cancellationToken: cts.Token);
 
                 var receiverOptions = new ReceiverOptions()
                 {
@@ -169,6 +181,21 @@ namespace CookingBot
             {
                 Console.WriteLine("Произошла непредвиденная ошибка: " + ex.Message);
             }
+
+            WaitBeforeExit();
+        }
+
+        /// <summary>
+        /// Пауза перед завершением программы: печатает подсказку и ждёт нажатия
+        /// любой клавиши. Нужна, чтобы окно консоли не закрылось сразу при
+        /// запуске exe двойным кликом — без паузы сообщения об ошибках печатаются
+        /// и мгновенно исчезают вместе с окном (при запуске из VS сообщения и так
+        /// остаются на экране, будет просто одно лишнее нажатие клавиши).
+        /// </summary>
+        private static void WaitBeforeExit()
+        {
+            Console.WriteLine("Нажмите любую клавишу для выхода...");
+            Console.ReadKey(true);
         }
 
         /// <summary>

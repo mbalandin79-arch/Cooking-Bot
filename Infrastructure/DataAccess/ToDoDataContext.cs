@@ -21,10 +21,15 @@ namespace CookingBot.Infrastructure.DataAccess
 
         /// <summary>Таблица пользователей БД.</summary>
         public ITable<ToDoUserModel> ToDoUsers => this.GetTable<ToDoUserModel>();
+
         /// <summary>Таблица рецептов БД.</summary>
         public ITable<ToDoItemModel> ToDoItems => this.GetTable<ToDoItemModel>();
+
         /// <summary>Таблица разделов БД.</summary>
         public ITable<ToDoListModel> ToDoLists => this.GetTable<ToDoListModel>();
+
+        /// <summary>Таблица нотификаций БД (ДЗ17).</summary>
+        public ITable<NotificationModel> Notifications => this.GetTable<NotificationModel>();
 
     }
 }

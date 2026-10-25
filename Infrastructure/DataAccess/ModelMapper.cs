@@ -134,5 +134,25 @@ namespace CookingBot.Infrastructure.DataAccess
                 User = entity.User != null ? MapToModel(entity.User) : null!
             };
         }
+
+        /// <summary>
+        /// Преобразует модель нотификации в Core-сущность.
+        /// Ассоциация User копируется рекурсивно, если заполнена (LoadWith).
+        /// </summary>
+        /// <param name="model">Модель из БД.</param>
+        /// <returns>Core-сущность нотификации.</returns>
+        public static Notification MapFromModel(NotificationModel model)
+        {
+            return new Notification
+            {
+                Id = model.Id,
+                User = model.User != null ? MapFromModel(model.User) : null!,
+                Type = model.Type,
+                Text = model.Text,
+                ScheduledAt = model.ScheduledAt,
+                IsNotified = model.IsNotified,
+                NotifiedAt = model.NotifiedAt
+            };
+        }
     }
 }

@@ -19,8 +19,11 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task CancelScenarioAsync(ITelegramBotClient telegramBotClient, Chat chat,
-            long userId, CancellationToken ct)
+        private async Task CancelScenarioAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat,
+            long userId, 
+            CancellationToken ct)
         {
             var ctx = await _contextRepository.GetContext(userId, ct);
             if (ctx != null)
@@ -43,8 +46,12 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task HandleBotCommandAsync(ITelegramBotClient telegramBotClient,
-            string text, Chat chat, long userId, CancellationToken ct)
+        private async Task HandleBotCommandAsync(
+            ITelegramBotClient telegramBotClient,
+            string text, 
+            Chat chat, 
+            long userId, 
+            CancellationToken ct)
         {
             var ctx = await _contextRepository.GetContext(userId, ct);
             if (ctx != null)
@@ -75,6 +82,12 @@ namespace CookingBot.TelegramBot
                         var prompt = "Сессия завершена. Для начала введите /start";
                         await telegramBotClient.SendMessage(chat, prompt,
                             replyMarkup: new ReplyKeyboardRemove(), cancellationToken: ct);
+
+                        // Пользователь покинул своё зарегистрированное окружение —
+                        // возвращаем ему гостевое меню (scope обязателен: без него
+                        // меню переписалось бы ВСЕМ пользователям).
+                        await telegramBotClient.SetMyCommands(Keyboards.GetCommandsForUser(null), 
+                            scope: new BotCommandScopeChat { ChatId = userId }, cancellationToken: ct);
                         break;
                     }
                 case "/admin":
@@ -91,7 +104,9 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task SendProfileMenuAsync(ITelegramBotClient telegramBotClient, Chat chat,
+        private async Task SendProfileMenuAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat,
             long userId, CancellationToken ct)
         {
             var user = await _userService.GetUserAsync(userId, ct);
@@ -109,7 +124,9 @@ namespace CookingBot.TelegramBot
         /// <param name="telegramBotClient">Клиент Telegram.</param>
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task ShowGreetingAsync(ITelegramBotClient telegramBotClient, Chat chat,
+        private async Task ShowGreetingAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat,
             CancellationToken ct)
         {
             var str = new StringBuilder("\n");
@@ -137,8 +154,11 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task ShowProfileInfoAsync(ITelegramBotClient telegramBotClient, Chat chat,
-            long userId, CancellationToken ct)
+        private async Task ShowProfileInfoAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat,
+            long userId, 
+            CancellationToken ct)
         {
             var myUser = await _userService.GetUserAsync(userId, ct);
 
@@ -171,8 +191,13 @@ namespace CookingBot.TelegramBot
         /// <param name="text">Введённое имя.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task UserRegistrationAsync(ITelegramBotClient telegramBotClient, Chat chat,
-            string? fromUsername, string text, long userId, CancellationToken ct)
+        private async Task UserRegistrationAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat,
+            string? fromUsername, 
+            string text, 
+            long userId, 
+            CancellationToken ct)
         {
             string telegramUserName = string.IsNullOrWhiteSpace(text) ? (fromUsername ?? $"User_{userId}") : text;
 
@@ -198,20 +223,33 @@ namespace CookingBot.TelegramBot
         }
 
         /// <summary>
-        /// Обрабатывает /start: приветствие; незарегистрированным — предложение
-        /// регистрации (клавиатура Да/Нет, состояние AwaitingRegistration);
+        /// Обрабатывает /start: приветствие; затем синхронизирует персональное
+        /// меню ☰ с актуальным состоянием БД (пользователь мог быть удалён
+        /// администратором или его роль могла измениться с прошлого захода);
+        /// незарегистрированным — предложение регистрации (клавиатура Да/Нет,
+        /// состояние AwaitingRegistration); 
         /// зарегистрированным — «Добро пожаловать» (Ready).
         /// </summary>
         /// <param name="telegramBotClient">Клиент Telegram.</param>
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task StartAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId,
+        private async Task StartAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat, 
+            long userId,
             CancellationToken ct)
         {
             await ShowGreetingAsync(telegramBotClient, chat, ct);
 
             ToDoUser? user = await _userService.GetUserAsync(userId, ct);
+
+            // Меню ☰ — по фактическому состоянию БД: GetCommandsForUser(null)
+            // возвращает гостевое меню (пользователь удалён), иначе — меню
+            // актуальной роли. scope обязателен: без него меню переписалось
+            // бы ВСЕМ пользователям.
+            await telegramBotClient.SetMyCommands(Keyboards.GetCommandsForUser(user), 
+                scope: new BotCommandScopeChat { ChatId = userId }, cancellationToken: ct);
 
             if (user == null)
             {
@@ -238,7 +276,10 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task HelpAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId,
+        private async Task HelpAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat, 
+            long userId,
             CancellationToken ct)
         {
             var user = await _userService.GetUserAsync(userId, ct);
@@ -286,7 +327,10 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task ReportAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId,
+        private async Task ReportAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat, 
+            long userId,
             CancellationToken ct)
         {
             var user = await _userService.GetUserAsync(userId, ct);

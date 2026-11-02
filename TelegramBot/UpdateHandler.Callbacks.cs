@@ -23,8 +23,10 @@ namespace CookingBot.TelegramBot
         /// <param name="telegramBotClient">Клиент Telegram.</param>
         /// <param name="callbackQuery">Callback-запрос (нажатая кнопка).</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task HandleCallbackQueryAsync(ITelegramBotClient telegramBotClient,
-            CallbackQuery callbackQuery, CancellationToken ct)
+        private async Task HandleCallbackQueryAsync(
+            ITelegramBotClient telegramBotClient,
+            CallbackQuery callbackQuery, 
+            CancellationToken ct)
         {
             // защита от пустого callbackQuery.Data
             var data = callbackQuery.Data;
@@ -90,8 +92,13 @@ namespace CookingBot.TelegramBot
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="callbackQuery">Callback-запрос (для запуска сценариев).</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task HandleCallbackSwitchAsync(ITelegramBotClient telegramBotClient,
-            string data, Chat chat, long userId, CallbackQuery callbackQuery, CancellationToken ct)
+        private async Task HandleCallbackSwitchAsync(
+            ITelegramBotClient telegramBotClient,
+            string data, 
+            Chat chat, 
+            long userId, 
+            CallbackQuery callbackQuery, 
+            CancellationToken ct)
         {
             switch (data)
             {
@@ -159,7 +166,6 @@ namespace CookingBot.TelegramBot
                 case "admin_demote_advanced":
                 case "admin_demote_mod":
                 case "admin_limits":
-                case "admin_cleanup_locks":
                 case "config_MaxTasksMember":
                 case "config_MaxTasksAdvanced":
                 case "config_MaxLengthTask":
@@ -186,8 +192,13 @@ namespace CookingBot.TelegramBot
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="callbackQuery">Нажатая кнопка (из её сообщения строится стартовое обновление).</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task StartScenarioAsync(ITelegramBotClient telegramBotClient,
-            ScenarioType type, string prompt, Chat chat, long userId, CallbackQuery callbackQuery,
+        private async Task StartScenarioAsync(
+            ITelegramBotClient telegramBotClient,
+            ScenarioType type, 
+            string prompt, 
+            Chat chat, 
+            long userId, 
+            CallbackQuery callbackQuery,
             CancellationToken ct)
         {
             var ctx = new ScenarioContext(type);
@@ -209,8 +220,13 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task HandleRegistrationCallbackAsync(ITelegramBotClient telegramBotClient,
-            CallbackQuery callbackQuery, string data, Chat chat, long userId, CancellationToken ct)
+        private async Task HandleRegistrationCallbackAsync(
+            ITelegramBotClient telegramBotClient,
+            CallbackQuery callbackQuery, 
+            string data, 
+            Chat chat, 
+            long userId, 
+            CancellationToken ct)
         {
             switch (data)
             {
@@ -253,8 +269,13 @@ namespace CookingBot.TelegramBot
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="messageId">Id сообщения для редактирования (постраничный показ).</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task HandlePrefixedCallbackAsync(ITelegramBotClient telegramBotClient,
-            string data, Chat chat, long userId, int messageId, CancellationToken ct)
+        private async Task HandlePrefixedCallbackAsync(
+            ITelegramBotClient telegramBotClient,
+            string data, 
+            Chat chat, 
+            long userId, 
+            int messageId, 
+            CancellationToken ct)
         {
             // pipe-разделённые команды (через DTO)
             if (data.StartsWith("show|"))
@@ -281,7 +302,7 @@ namespace CookingBot.TelegramBot
                         SetState(userId, HandlerState.AwaitingChangeName);
                         await telegramBotClient.SendMessage(chat, "Введите новое имя",
                             replyMarkup: Keyboards.BuildCancelKeyboard(), cancellationToken: ct);
-                        _changeNameTargets[userId] = changeNameUserId;
+                        _activityRegistry.SetChangeNameTarget(userId, changeNameUserId);
                     }
                     break;
                 case PrefixedCommand.DeleteAccount:
@@ -356,8 +377,12 @@ namespace CookingBot.TelegramBot
         /// <param name="context">Контекст сценария пользователя.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task ProcessScenarioAsync(ITelegramBotClient telegramBotClient, Update update,
-            ScenarioContext context, long userId, CancellationToken ct)
+        private async Task ProcessScenarioAsync(
+            ITelegramBotClient telegramBotClient, 
+            Update update,
+            ScenarioContext context, 
+            long userId, 
+            CancellationToken ct)
         {
             var scenario = GetScenario(context.CurrentScenario);
             if (scenario == null)

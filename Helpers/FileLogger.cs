@@ -7,9 +7,10 @@ using System.Threading.Tasks;
 namespace CookingBot.Helpers
 {
     /// <summary>
-    /// Простейший файловый логгер ошибок: пишет записи в файл
-    /// Logs\error_ГГГГ-ММ-ДД.log рядом с исполняемым файлом
-    /// (по одному файлу на день). Потокобезопасен (общий lock).
+    /// Простейший файловый логгер: пишет ошибки (error_ГГГГ-ММ-ДД.log) и
+    /// информационные сообщения (info_ГГГГ-ММ-ДД.log) в папку Logs рядом
+    /// с исполняемым файлом (по одному файлу на день). Потокобезопасен
+    /// (общий lock).
     /// </summary>
     public static class FileLogger
     {
@@ -38,6 +39,41 @@ namespace CookingBot.Helpers
                     $"Message: {ex.Message}",
                     $"StackTrace: {ex.StackTrace}",
                     ex.InnerException != null ? $"Inner: {ex.InnerException.GetType().Name} - {ex.InnerException.Message}" : "",
+                    new string('-', 80),
+                    ""
+                };
+
+                lock (_lock)
+                {
+                    File.AppendAllLines(logFile, lines);
+                }
+            }
+            catch
+            {
+                // логирование не должно падать
+            }
+        }
+
+        /// <summary>
+        /// Записывает информационное сообщение в лог-файл текущего дня
+        /// (info_ГГГГ-ММ-ДД.log — отдельный от ошибок). Ошибки самого
+        /// логирования проглатываются — логирование не должно ломать
+        /// работу бота.
+        /// </summary>
+        /// <param name="message">Сообщение для записи.</param>
+        /// <param name="context">Необязательный контекст: откуда сообщение.</param>
+        public static void LogInformation(string message, string? context = null)
+        {
+            try
+            {
+                Directory.CreateDirectory(_logDirectory);
+                var logFile = Path.Combine(_logDirectory, $"info_{DateTime.Now:yyyy-MM-dd}.log");
+
+                var lines = new[]
+                {
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] INFO",
+                    context != null ? $"Context: {context}" : "",
+                    message,
                     new string('-', 80),
                     ""
                 };

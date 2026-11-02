@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using CookingBot.Core.Services;
 using CookingBot.Helpers;
@@ -22,30 +21,6 @@ namespace CookingBot.TelegramBot
     /// </summary>
     internal partial class UpdateHandler : IUpdateHandler
     {
-        /// <summary>
-        /// Состояние пользователя вне сценариев (простой конечный автомат):
-        /// чего бот ждёт от пользователя в следующем текстовом сообщении.
-        /// </summary>
-        private enum HandlerState
-        {
-            /// <summary>Ожидает команды /start.</summary>
-            AwaitingStart,
-            /// <summary>Ожидает «Y» для регистрации.</summary>
-            AwaitingRegistration,
-            /// <summary>Ожидает имя.</summary>
-            AwaitingRegistrationName,
-            /// <summary>Ожидает новое имя.</summary>
-            AwaitingChangeName,
-            /// <summary>Ожидает новое значение лимита.</summary>
-            AwaitingConfigLimit,
-            /// <summary>Готов к обычной работе.</summary>
-            Ready,
-            /// <summary>Ожидает имя для /find.</summary>
-            AwaitingFindName,
-            /// <summary>Ожидает имя для /findall.</summary>
-            AwaitingFindAllName
-        }
-
         /// <summary>Команда с префиксом в callback-данных кнопки (например, «setstate_...»).</summary>
         private enum PrefixedCommand
         {
@@ -81,11 +56,8 @@ namespace CookingBot.TelegramBot
         private readonly IScenarioContextRepository _contextRepository;
         private readonly IReadOnlyList<IScenario> _scenarios;
         private readonly IToDoListService _toDoListService;
-        private readonly ConcurrentDictionary<long, HandlerState> _states = new();
-        private readonly ConcurrentDictionary<long, Guid> _changeNameTargets = new();
-        private readonly ConcurrentDictionary<long, string> _configLimitTargets = new();
+        private readonly UserActivityRegistry _activityRegistry;
         private readonly string _settingsPath;
-        private readonly ConcurrentDictionary<long, SemaphoreSlim> _userLocks = new();
 
         /// <summary>Создаёт обработчик обновлений.</summary>
         /// <param name="userService">Сервис пользователей.</param>
@@ -94,10 +66,17 @@ namespace CookingBot.TelegramBot
         /// <param name="contextRepository">Хранилище контекстов сценариев.</param>
         /// <param name="scenarios">Сценарии многошаговых диалогов.</param>
         /// <param name="toDoListService">Сервис разделов.</param>
+        /// <param name="activityRegistry">Реестр активности пользователей (общий с задачей авточистки).</param>
         /// <param name="settingsPath">Путь к appsettings.json (чтение лимитов).</param>
-        public UpdateHandler(IUserService userService, IToDoService todoService,
-            IToDoReportService toDoReportService, IScenarioContextRepository contextRepository,
-            IReadOnlyList<IScenario> scenarios, IToDoListService toDoListService, string settingsPath)
+        public UpdateHandler(
+            IUserService userService, 
+            IToDoService todoService,
+            IToDoReportService toDoReportService, 
+            IScenarioContextRepository contextRepository,
+            IReadOnlyList<IScenario> scenarios, 
+            IToDoListService toDoListService,
+            UserActivityRegistry activityRegistry,
+            string settingsPath)
         {
             _userService = userService;
             _todoService = todoService;
@@ -105,6 +84,7 @@ namespace CookingBot.TelegramBot
             _contextRepository = contextRepository;
             _scenarios = scenarios;
             _toDoListService = toDoListService;
+            _activityRegistry = activityRegistry;
             _settingsPath = settingsPath;
         }
 
@@ -114,8 +94,11 @@ namespace CookingBot.TelegramBot
         /// <param name="source">Источник ошибки.</param>
         /// <param name="ct">Токен отмены операции.</param>
         /// <returns>Завершённая задача (ошибка проглатывается после записи в лог).</returns>
-        public Task HandleErrorAsync(ITelegramBotClient telegramBotClient, Exception exception,
-            HandleErrorSource source, CancellationToken ct)
+        public Task HandleErrorAsync
+            (ITelegramBotClient telegramBotClient, 
+            Exception exception,
+            HandleErrorSource source, 
+            CancellationToken ct)
         {
             FileLogger.LogError(exception, $"HandleError {source}");
             return Task.CompletedTask;
@@ -132,7 +115,9 @@ namespace CookingBot.TelegramBot
         /// <param name="telegramBotClient">Клиент Telegram.</param>
         /// <param name="update">Входящее обновление.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        public async Task HandleUpdateAsync(ITelegramBotClient telegramBotClient, Update update,
+        public async Task HandleUpdateAsync(
+            ITelegramBotClient telegramBotClient, 
+            Update update,
             CancellationToken ct)
         {
             if (update.Message == null && update.CallbackQuery == null)
@@ -142,7 +127,7 @@ namespace CookingBot.TelegramBot
             if (!userId.HasValue)
                 return;
 
-            var userLock = _userLocks.GetOrAdd(userId.Value, _ => new SemaphoreSlim(1, 1));
+            var userLock = _activityRegistry.GetOrAddLock(userId.Value);
             await userLock.WaitAsync();
 
             try
@@ -217,8 +202,12 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task HandleStateAsync(ITelegramBotClient telegramBotClient,
-            string text, Chat chat, long userId, CancellationToken ct)
+        private async Task HandleStateAsync(
+            ITelegramBotClient telegramBotClient,
+            string text, 
+            Chat chat, 
+            long userId, 
+            CancellationToken ct)
         {
             HandlerState state = GetState(userId);
 
@@ -244,10 +233,10 @@ namespace CookingBot.TelegramBot
                 case HandlerState.AwaitingChangeName:
                     if (!string.IsNullOrWhiteSpace(text))
                     {
-                        if (_changeNameTargets.TryGetValue(userId, out Guid targetUserId))
+                        if (_activityRegistry.TryGetChangeNameTarget(userId, out Guid targetUserId))
                         {
                             await _userService.ChangeNameUser(targetUserId, text, ct);
-                            _changeNameTargets.TryRemove(userId, out _);
+                            _activityRegistry.RemoveChangeNameTarget(userId);
                         }
                         SetState(userId, HandlerState.Ready);
                         await telegramBotClient.SendMessage(chat, "Имя успешно изменено", cancellationToken: ct);
@@ -313,7 +302,7 @@ namespace CookingBot.TelegramBot
         /// <param name="newState">Новое состояние.</param>
         private void SetState(long userId, HandlerState newState)
         {
-            _states[userId] = newState;
+            _activityRegistry.SetState(userId, newState);
         }
 
         /// <summary>Возвращает состояние пользователя; по умолчанию — AwaitingStart.</summary>
@@ -321,7 +310,7 @@ namespace CookingBot.TelegramBot
         /// <returns>Текущее состояние пользователя.</returns>
         private HandlerState GetState(long userId)
         {
-            return _states.TryGetValue(userId, out var state) ? state : HandlerState.AwaitingStart;
+            return _activityRegistry.GetState(userId);
         }
 
         /// <summary>Отправляет пользователю главное меню («Выберите раздел:», клавиатура по роли).</summary>
@@ -329,8 +318,11 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task SendMainMenuAsync(ITelegramBotClient telegramBotClient, Chat chat,
-            long userId, CancellationToken ct)
+        private async Task SendMainMenuAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat,
+            long userId, 
+            CancellationToken ct)
         {
             var user = await _userService.GetUserAsync(userId, ct);
             await telegramBotClient.SendMessage(chat, "Выберите раздел:",
@@ -347,8 +339,13 @@ namespace CookingBot.TelegramBot
         /// <param name="text">Новый текст сообщения.</param>
         /// <param name="replyMarkup">Новая клавиатура (null — без клавиатуры).</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private static async Task EditMessageTextSafeAsync(ITelegramBotClient telegramBotClient, Chat chat, int messageId, 
-            string text, InlineKeyboardMarkup? replyMarkup, CancellationToken ct)
+        private static async Task EditMessageTextSafeAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat, 
+            int messageId, 
+            string text, 
+            InlineKeyboardMarkup? replyMarkup, 
+            CancellationToken ct)
         {
             try
             {

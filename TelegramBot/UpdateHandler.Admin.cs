@@ -19,8 +19,11 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task SendAdminMenuAsync(ITelegramBotClient telegramBotClient, Chat chat,
-            long userId, CancellationToken ct)
+        private async Task SendAdminMenuAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat,
+            long userId, 
+            CancellationToken ct)
         {
             var user = await _userService.GetUserAsync(userId, ct);
             if (user != null &&
@@ -48,8 +51,12 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task HandleAdminCallbackAsync(ITelegramBotClient telegramBotClient,
-            string data, Chat chat, long userId, CancellationToken ct)
+        private async Task HandleAdminCallbackAsync(
+            ITelegramBotClient telegramBotClient,
+            string data, 
+            Chat chat, 
+            long userId, 
+            CancellationToken ct)
         {
             var user = await _userService.GetUserAsync(userId, ct);
             if (user == null || (user.State != ToDoUser.ToDoUserState.Moderator &&
@@ -106,9 +113,6 @@ namespace CookingBot.TelegramBot
                 case "admin_limits":
                     await ShowLimitsAsync(telegramBotClient, chat, ct);
                     break;
-                case "admin_cleanup_locks":
-                    await CleanupGuestLocksAsync(telegramBotClient, chat, ct);
-                    break;
                 case "config_MaxTasksMember":
                 case "config_MaxTasksAdvanced":
                 case "config_MaxLengthTask":
@@ -116,9 +120,10 @@ namespace CookingBot.TelegramBot
                 case "config_MaxListsPerUserAdvanced":
                 case "config_MaxRecipesPerList":
                     {
-                        _configLimitTargets[userId] = data.Substring("config_".Length);
+                        var targetName = data.Substring("config_".Length);
+                        _activityRegistry.SetConfigLimitTarget(userId, targetName);
                         SetState(userId, HandlerState.AwaitingConfigLimit);
-                        var prompt = $"Введите новое значение для {_configLimitTargets[userId]} (1-1000):";
+                        var prompt = $"Введите новое значение для {targetName} (1-1000):";
                         await telegramBotClient.SendMessage(chat, prompt,
                             replyMarkup: Keyboards.BuildCancelKeyboard("admin_limits"), cancellationToken: ct);
                         break;
@@ -133,7 +138,9 @@ namespace CookingBot.TelegramBot
         /// <param name="telegramBotClient">Клиент Telegram.</param>
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task ShowLimitsAsync(ITelegramBotClient telegramBotClient, Chat chat,
+        private async Task ShowLimitsAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat,
             CancellationToken ct)
         {
             var (maxTasksMember, maxTasksAdvanced, maxLengthTask, maxListsPerUserMember, maxListsPerUserAdvanced, maxRecipesPerList) = AppConfig.ReadLimits(_settingsPath);
@@ -153,7 +160,9 @@ namespace CookingBot.TelegramBot
         /// <param name="telegramBotClient">Клиент Telegram.</param>
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task ListUsersAsync(ITelegramBotClient telegramBotClient, Chat chat,
+        private async Task ListUsersAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat,
             CancellationToken ct)
         {
             var users = await _userService.GetAllUsersAsync(ct);
@@ -178,8 +187,12 @@ namespace CookingBot.TelegramBot
         /// <param name="callbackPrefix">Префикс callback-данных (например, «setstate_member»).</param>
         /// <param name="prompt">Подсказка (какое действие выполняется).</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task ShowUserListForStateChangeAsync(ITelegramBotClient telegramBotClient,
-            Chat chat, string callbackPrefix, string prompt, CancellationToken ct)
+        private async Task ShowUserListForStateChangeAsync(
+            ITelegramBotClient telegramBotClient,
+            Chat chat, 
+            string callbackPrefix, 
+            string prompt, 
+            CancellationToken ct)
         {
             var users = await _userService.GetAllUsersAsync(ct);
 
@@ -203,8 +216,12 @@ namespace CookingBot.TelegramBot
         /// <param name="data">Callback-данные кнопки («setstate_роль_UserId»).</param>
         /// <param name="adminUserId">Идентификатор вызывающего (проверка прав).</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task HandleSetStateCallbackAsync(ITelegramBotClient telegramBotClient,
-            Chat chat, string data, long adminUserId, CancellationToken ct)
+        private async Task HandleSetStateCallbackAsync(
+            ITelegramBotClient telegramBotClient,
+            Chat chat, 
+            string data, 
+            long adminUserId, 
+            CancellationToken ct)
         {
             var parts = data.Split('_', 3);
             if (parts.Length < 3)
@@ -272,8 +289,12 @@ namespace CookingBot.TelegramBot
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="text">Введённое значение лимита.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task UpdateConfigLimitAsync(ITelegramBotClient telegramBotClient, Chat chat, long userId,
-            string text, CancellationToken ct)
+        private async Task UpdateConfigLimitAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat, 
+            long userId,
+            string text, 
+            CancellationToken ct)
         {
             if (!int.TryParse(text, out int value) || value < 1 || value > 1000)
             {
@@ -281,7 +302,8 @@ namespace CookingBot.TelegramBot
                 return;
             }
 
-            if (!_configLimitTargets.TryGetValue(userId, out string? targetName) || string.IsNullOrEmpty(targetName))
+            var targetName = _activityRegistry.GetConfigLimitTarget(userId);
+            if (string.IsNullOrEmpty(targetName))
                 return;
 
             var json = File.ReadAllText(_settingsPath);
@@ -298,37 +320,8 @@ namespace CookingBot.TelegramBot
             var prompt = $"{targetName} = {value}. Лимит обновлён.";
             await telegramBotClient.SendMessage(chat, prompt, cancellationToken: ct);
             await ShowLimitsAsync(telegramBotClient, chat, ct);
-            _configLimitTargets.TryRemove(userId, out _);
+            _activityRegistry.RemoveConfigLimitTarget(userId);
             SetState(userId, HandlerState.Ready);
-        }
-
-        /// <summary>
-        /// Очистка in-memory записей незарегистрированных пользователей
-        /// (блокировки, состояния, цели смены имени/лимита) — «журнал активности».
-        /// </summary>
-        /// <param name="telegramBotClient">Клиент Telegram.</param>
-        /// <param name="chat">Чат с пользователем.</param>
-        /// <param name="ct">Токен отмены операции.</param>
-        private async Task CleanupGuestLocksAsync(ITelegramBotClient telegramBotClient, Chat chat,
-            CancellationToken ct)
-        {
-            int removed = 0;
-            var keys = _userLocks.Keys.ToList();
-
-            foreach (var key in keys)
-            {
-                var user = await _userService.GetUserAsync(key, ct);
-                if (user == null)
-                {
-                    _userLocks.TryRemove(key, out _);
-                    _states.TryRemove(key, out _);
-                    _changeNameTargets.TryRemove(key, out _);
-                    _configLimitTargets.TryRemove(key, out _);
-                    removed++;
-                }
-            }
-            var prompr = $"Очищено записей незарегистрированных пользователей: {removed}";
-            await telegramBotClient.SendMessage(chat, prompr, cancellationToken: ct);
         }
     }
 }

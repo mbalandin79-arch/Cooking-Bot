@@ -102,7 +102,6 @@ namespace CookingBot
                 await toDoListService.SetConfigurationAsync(maxListsPerUserMember, maxListsPerUserAdvanced, cts.Token);
                 var toDoReportService = new ToDoReportService(toDoService, toDoListService);
                 var userService = new UserService(userRepository);
-                var notificationService = new NotificationService(dataContextFactory);
                 var contextRepository = new InMemoryScenarioContextRepository();
                 var scenarios = new List<IScenario>
                 {
@@ -111,7 +110,11 @@ namespace CookingBot
                     new DeleteListScenario(userService, toDoListService),
                     new DeleteTaskScenario(toDoService)
                 };
-                var handler = new UpdateHandler(userService, toDoService, toDoReportService, contextRepository, scenarios, toDoListService, settingsPath);
+
+                // Реестр активности: один общий экземпляр для UpdateHandler
+                // и задачи авточистки (очищает записи удалённых из БД пользователей)
+                var activityRegistry = new UserActivityRegistry();
+                var handler = new UpdateHandler(userService, toDoService, toDoReportService, contextRepository, scenarios, toDoListService, activityRegistry, settingsPath);
                 var botClient = new TelegramBotClient(botToken);
 
                 // Ранняя проверка связи с Telegram и токена
@@ -168,7 +171,7 @@ namespace CookingBot
                 using var runner = new BackgroundTaskRunner();
                 runner.AddTask(new ResetScenarioBackgroundTask(TimeSpan.FromHours(resetScenarioRunIntervalHours), 
                     TimeSpan.FromHours(resetScenarioTimeoutHours), contextRepository, userService, botClient));
-                runner.AddTask(new NotificationBackgroundTask(notificationService, botClient));
+                runner.AddTask(new CleanupBackgroundTask(activityRegistry, userService));
 
                 // Запуск фоновых задач - до запуска приема сообщений ботом
                 // (StartTasks возвращает void: он только стартует задачи и сразу выходит)

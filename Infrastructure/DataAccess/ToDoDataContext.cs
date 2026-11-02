@@ -27,9 +27,5 @@ namespace CookingBot.Infrastructure.DataAccess
 
         /// <summary>Таблица разделов БД.</summary>
         public ITable<ToDoListModel> ToDoLists => this.GetTable<ToDoListModel>();
-
-        /// <summary>Таблица нотификаций БД (ДЗ17).</summary>
-        public ITable<NotificationModel> Notifications => this.GetTable<NotificationModel>();
-
     }
 }

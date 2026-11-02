@@ -93,8 +93,7 @@ namespace CookingBot.TelegramBot
         /// Собирает клавиатуру меню администрирования: список пользователей,
         /// повышение/понижение ролей (только Admin — вплоть до Admin),
         /// лимиты. Moderator до внедрения экрана пользователя управляет
-        /// только списком. Кнопка «Очистка журнала активности» временная:
-        /// заменяется фоновой задачей чистки (п.2 плана).
+        /// только списком.
         /// </summary>
         /// <param name="state">Роль вызывающего (определяет набор кнопок).</param>
         /// <returns>Клавиатура меню администрирования.</returns>
@@ -121,11 +120,7 @@ namespace CookingBot.TelegramBot
                     InlineKeyboardButton.WithCallbackData("Лимиты", "admin_limits")
                 });
             }
-
-            rows.Add(new()
-            {
-                InlineKeyboardButton.WithCallbackData("Очистка журнала активности", "admin_cleanup_locks")
-            });
+            
             rows.Add(new() { InlineKeyboardButton.WithCallbackData("Назад", "mainmenu") });
 
             return new InlineKeyboardMarkup(rows);

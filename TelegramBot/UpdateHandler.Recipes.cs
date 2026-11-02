@@ -18,8 +18,11 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task SendCookMenuAsync(ITelegramBotClient telegramBotClient, Chat chat,
-            long userId, CancellationToken ct)
+        private async Task SendCookMenuAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat,
+            long userId, 
+            CancellationToken ct)
         {
             var user = await _userService.GetUserAsync(userId, ct);
             bool isRegistered = user != null;
@@ -35,8 +38,11 @@ namespace CookingBot.TelegramBot
         /// <param name="telegramBotClient">Клиент Telegram.</param>
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task FindRecipesAsync(string namePrefix, ITelegramBotClient telegramBotClient,
-            Chat chat, CancellationToken ct)
+        private async Task FindRecipesAsync(
+            string namePrefix, 
+            ITelegramBotClient telegramBotClient,
+            Chat chat, 
+            CancellationToken ct)
         {
             if (!string.IsNullOrWhiteSpace(namePrefix))
             {
@@ -68,8 +74,12 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="messageId">Id редактируемого сообщения.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task HandleShowAllAsync(ITelegramBotClient telegramBotClient, string data,
-            Chat chat, int messageId, CancellationToken ct)
+        private async Task HandleShowAllAsync(
+            ITelegramBotClient telegramBotClient, 
+            string data,
+            Chat chat, 
+            int messageId, 
+            CancellationToken ct)
         {
             var dto = PagedListCallbackDto.FromString(data);
             var listAllTasks = await _todoService.GetAllTasksAsync(ct);
@@ -95,8 +105,13 @@ namespace CookingBot.TelegramBot
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="messageId">Id редактируемого сообщения.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task HandleShowListAsync(ITelegramBotClient telegramBotClient, string data,
-            Chat chat, long userId, int messageId, CancellationToken ct)
+        private async Task HandleShowListAsync(
+            ITelegramBotClient telegramBotClient, 
+            string data,
+            Chat chat, 
+            long userId, 
+            int messageId, 
+            CancellationToken ct)
         {
             var dto = PagedListCallbackDto.FromString(data);
             var user = await _userService.GetUserAsync(userId, ct);
@@ -127,8 +142,12 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task HandleTaskCallbackAsync(ITelegramBotClient telegramBotClient,
-            string data, Chat chat, long userId, CancellationToken ct)
+        private async Task HandleTaskCallbackAsync(
+            ITelegramBotClient telegramBotClient,
+            string data, 
+            Chat chat, 
+            long userId, 
+            CancellationToken ct)
         {
             var dto = ToDoItemCallbackDto.FromString(data);
             var currentUser = await _userService.GetUserAsync(userId, ct);
@@ -176,7 +195,9 @@ namespace CookingBot.TelegramBot
         /// <param name="telegramBotClient">Клиент Telegram.</param>
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task ShowAllRecipesAsync(ITelegramBotClient telegramBotClient, Chat chat,
+        private async Task ShowAllRecipesAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat,
             CancellationToken ct)
         {
             var listAllTasks = await _todoService.GetAllTasksAsync(ct);
@@ -202,8 +223,11 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task ShowListsAsync(ITelegramBotClient telegramBotClient, Chat chat,
-            long userId, CancellationToken ct)
+        private async Task ShowListsAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat,
+            long userId, 
+            CancellationToken ct)
         {
             var user = await _userService.GetUserAsync(userId, ct);
             if (user == null)
@@ -227,8 +251,12 @@ namespace CookingBot.TelegramBot
         /// <param name="chat">Чат с пользователем.</param>
         /// <param name="userId">Идентификатор пользователя в Telegram.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        private async Task FindMyRecipesAsync(string namePrefix, ITelegramBotClient telegramBotClient,
-            Chat chat, long userId, CancellationToken ct)
+        private async Task FindMyRecipesAsync(
+            string namePrefix, 
+            ITelegramBotClient telegramBotClient,
+            Chat chat, 
+            long userId, 
+            CancellationToken ct)
         {
             if (!string.IsNullOrWhiteSpace(namePrefix))
             {

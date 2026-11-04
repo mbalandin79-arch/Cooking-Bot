@@ -65,8 +65,15 @@ namespace CookingBot.Core.Services
         /// <exception cref="TaskCountLimitException">Достигнут лимит активных рецептов или лимит рецептов в разделе.</exception>
         /// <exception cref="TaskLengthLimitException">Название длиннее допустимого.</exception>
         /// <exception cref="DuplicateTaskException">Рецепт с таким названием у пользователя уже есть.</exception>
-        Task<ToDoItem> AddAsync(ToDoUser user, string name, ToDoItem.MainCategory category, List<string> ingredients, List<string> hiddenIngredients, 
-            List<string> steps, ToDoList? todoList, CancellationToken ct);
+        Task<ToDoItem> AddAsync(
+            ToDoUser user, 
+            string name, 
+            ToDoItem.MainCategory category, 
+            List<string> ingredients, 
+            List<string> hiddenIngredients, 
+            List<string> steps, 
+            ToDoList? todoList, 
+            CancellationToken ct);
 
         /// <summary>
         /// Заменяет шаги приготовления рецепта одним текстом;
@@ -89,7 +96,12 @@ namespace CookingBot.Core.Services
         /// <param name="maxLengthTask">Максимальная длина названия рецепта.</param>
         /// <param name="maxRecipesPerList">Максимальное количество рецептов в разделе.</param>
         /// <param name="ct">Токен отмены операции.</param>
-        Task SetConfigurationAsync(int maxTasksMember, int maxTasksAdvanced, int maxLengthTask, int maxRecipesPerList, CancellationToken ct);
+        Task SetConfigurationAsync(
+            int maxTasksMember, 
+            int maxTasksAdvanced, 
+            int maxLengthTask, 
+            int maxRecipesPerList, 
+            CancellationToken ct);
 
         /// <summary>
         /// Возвращает рецепты пользователя, названия которых начинаются

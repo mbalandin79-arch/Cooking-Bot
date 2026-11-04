@@ -90,8 +90,15 @@ namespace CookingBot.Core.Services
         }
 
         /// <inheritdoc/>
-        public async Task<ToDoItem> AddAsync(ToDoUser user, string name, ToDoItem.MainCategory category, 
-            List<string> ingredients, List<string> hiddenIngredients, List<string> steps, ToDoList? todoList, CancellationToken ct)
+        public async Task<ToDoItem> AddAsync(
+            ToDoUser user, 
+            string name, 
+            ToDoItem.MainCategory category, 
+            List<string> ingredients, 
+            List<string> hiddenIngredients, 
+            List<string> steps, 
+            ToDoList? todoList, 
+            CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(name))
@@ -148,7 +155,12 @@ namespace CookingBot.Core.Services
         }
 
         /// <inheritdoc/>
-        public async Task SetConfigurationAsync(int maxTasksMember, int maxTasksAdvanced, int maxLengthTask, int maxRecipesPerList, CancellationToken ct)
+        public async Task SetConfigurationAsync(
+            int maxTasksMember, 
+            int maxTasksAdvanced, 
+            int maxLengthTask, 
+            int maxRecipesPerList, 
+            CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             _maxTasksMember = maxTasksMember;

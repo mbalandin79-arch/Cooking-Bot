@@ -105,9 +105,10 @@ namespace CookingBot.TelegramBot
         }
 
         /// <summary>
-        /// Точка входа всех обновлений. Маршрут: нажатие кнопки →
-        /// HandleCallbackQueryAsync; «Отмена»/команда → отмена сценария /
-        /// HandleBotCommandAsync; активный сценарий → ProcessScenarioAsync;
+        /// Точка входа всех обновлений. 
+        /// Маршрут: нажатие кнопки → HandleCallbackQueryAsync; 
+        /// «Отмена»/команда → отмена сценария / HandleBotCommandAsync; 
+        /// активный сценарий → ProcessScenarioAsync;
         /// иначе → HandleStateAsync (по состоянию пользователя).
         /// Обновления одного пользователя обрабатываются строго по очереди
         /// (SemaphoreSlim на пользователя).

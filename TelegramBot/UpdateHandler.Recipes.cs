@@ -96,8 +96,7 @@ namespace CookingBot.TelegramBot
         }
 
         /// <summary>
-        /// Показывает активные рецепты пользователя в разделе (постранично)
-        /// с дополнительной кнопкой «Посмотреть выполненные».
+        /// Показывает рецепты пользователя в разделе (постранично).
         /// </summary>
         /// <param name="telegramBotClient">Клиент Telegram.</param>
         /// <param name="data">Callback-данные кнопки («show|Id|страница»).</param>

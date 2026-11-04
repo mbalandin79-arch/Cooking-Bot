@@ -91,9 +91,7 @@ namespace CookingBot.TelegramBot
 
         /// <summary>
         /// Собирает клавиатуру меню администрирования: список пользователей,
-        /// повышение/понижение ролей (только Admin — вплоть до Admin),
-        /// лимиты. Moderator до внедрения экрана пользователя управляет
-        /// только списком.
+        /// повышение/понижение ролей (только Admin — вплоть до Admin), лимиты.
         /// </summary>
         /// <param name="state">Роль вызывающего (определяет набор кнопок).</param>
         /// <returns>Клавиатура меню администрирования.</returns>
@@ -470,8 +468,10 @@ namespace CookingBot.TelegramBot
         /// <param name="callbackData">Список кнопок: текст -> callback-данные.</param>
         /// <param name="listDto">Текущее состояние постраничного вывода (действие, список, страница).</param>
         /// <param name="extraButton">Необязательная дополнительная кнопка внизу (например, "Посмотреть выполненные").</param>
-        public static InlineKeyboardMarkup BuildPagedButtons(IReadOnlyList<KeyValuePair<string, string>> callbackData,
-            PagedListCallbackDto listDto, KeyValuePair<string, string>? extraButton = null)
+        public static InlineKeyboardMarkup BuildPagedButtons(
+            IReadOnlyList<KeyValuePair<string, string>> callbackData,
+            PagedListCallbackDto listDto, 
+            KeyValuePair<string, string>? extraButton = null)
         {
             int totalPages = (int)Math.Ceiling((double)callbackData.Count / _pageSize);
             if (totalPages == 0) totalPages = 1;

@@ -15,8 +15,8 @@ namespace CookingBot.TelegramBot.Scenarios
 {
     /// <summary>
     /// Сценарий добавления рецепта (многошаговый диалог):
-    /// название → дедлайн (можно пропустить) → категория (inline-кнопки) → подкатегория (или создание новой:
-    /// шаг "NewListName") → ингредиенты (по ним возможен поиск) → скрытые
+    /// название → категория (inline-кнопки) → подкатегория (или создание новой:
+    /// шаг "NewListName") → ингредиенты (по ним возможен поиск) → дополнительные
     /// ингредиенты (по ним поиска нет, можно пропустить) → шаги приготовления
     /// (до 20, кнопка "Готово") → создание рецепта через ToDoService
     /// (CreateRecipeAsync, ошибки лимитов/дубликата — понятным текстом).
@@ -48,7 +48,11 @@ namespace CookingBot.TelegramBot.Scenarios
         }
 
         /// <inheritdoc/>
-        public async Task<ScenarioResult> HandleMessageAsync(ITelegramBotClient telegramBotClient, ScenarioContext context, Update update, CancellationToken ct)
+        public async Task<ScenarioResult> HandleMessageAsync(
+            ITelegramBotClient telegramBotClient, 
+            ScenarioContext context, 
+            Update update, 
+            CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             var chat = update.Message?.Chat ?? update.CallbackQuery?.Message?.Chat;
@@ -119,7 +123,7 @@ namespace CookingBot.TelegramBot.Scenarios
                         var user = (ToDoUser)context.Data["user"];
                         var lists = await _todoListService.GetUserListsAsync(user.UserId, ct);
 
-                        await telegramBotClient.SendMessage(chat, "Выберите подкатегорию (список рецептов) или создайте новую:", replyMarkup: Keyboards.BuildListsKeyboard(lists), cancellationToken: ct);
+                        await telegramBotClient.SendMessage(chat, "Выберите подкатегорию (ваша собственная группировка) или создайте новую:", replyMarkup: Keyboards.BuildListsKeyboard(lists), cancellationToken: ct);
                         context.CurrentStep = "SubCategory";
                         return ScenarioResult.Transition;
                     }
@@ -235,7 +239,7 @@ namespace CookingBot.TelegramBot.Scenarios
 
                         context.Data["ingredients"] = ingredients;
 
-                        await telegramBotClient.SendMessage(chat, "Введите скрытые ингредиенты через запятую. По ним поиск рецепта будет недоступен.\nМожно пропустить.", replyMarkup: Keyboards.BuildSkipKeyboard(), cancellationToken: ct);
+                        await telegramBotClient.SendMessage(chat, "Введите дополнительные ингредиенты через запятую. По ним поиск рецепта будет недоступен.\nМожно пропустить.", replyMarkup: Keyboards.BuildSkipKeyboard(), cancellationToken: ct);
                         context.CurrentStep = "HiddenIngredients";
                         return ScenarioResult.Transition;
                     }
@@ -321,7 +325,11 @@ namespace CookingBot.TelegramBot.Scenarios
         /// <param name="context">Контекст сценария (накопленные данные).</param>
         /// <param name="ct">Токен отмены операции.</param>
         /// <returns>Completed — сценарий завершён (успех или ошибка).</returns>
-        private async Task<ScenarioResult> CreateRecipeAsync(ITelegramBotClient telegramBotClient, Chat chat, ScenarioContext context, CancellationToken ct)
+        private async Task<ScenarioResult> CreateRecipeAsync(
+            ITelegramBotClient telegramBotClient, 
+            Chat chat, 
+            ScenarioContext context, 
+            CancellationToken ct)
         {
             var toDoUser = (ToDoUser)context.Data["user"];
             var taskName = (string)context.Data["name"];

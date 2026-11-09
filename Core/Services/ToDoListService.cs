@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
 using CookingBot.Core.DataAccess;
 using CookingBot.Core.Entities;
 using CookingBot.Core.Exceptions;
@@ -27,34 +28,6 @@ namespace CookingBot.Core.Services
         public ToDoListService(IToDoListRepository toDoListRepository)
         {
             _toDoListRepository = toDoListRepository;
-        }
-
-        /// <summary>Проверяет длину названия раздела; бросает исключение при превышении.</summary>
-        /// <param name="name">Название раздела.</param>
-        /// <exception cref="TaskLengthLimitException">Название длиннее MaxListNameLength.</exception>
-        private void CheckLengthLimits(string name)
-        {
-            if (name.Length > MaxListNameLength)
-            {
-                throw new TaskLengthLimitException(name.Length, MaxListNameLength);
-            }
-        }
-
-        /// <summary>
-        /// Проверяет, что у пользователя нет раздела с таким названием;
-        /// бросает исключение, если дубликат найден.
-        /// </summary>
-        /// <param name="userId">Идентификатор пользователя.</param>
-        /// <param name="name">Название раздела.</param>
-        /// <param name="ct">Токен отмены операции.</param>
-        /// <exception cref="DuplicateTaskException">Раздел с таким названием уже есть.</exception>
-        private async Task CheckDuplicateAsync(Guid userId, string name, CancellationToken ct)
-        {
-            var checkExist = await _toDoListRepository.ExistsByNameAsync(userId, name, ct);
-            if (checkExist)
-            {
-                throw new DuplicateTaskException(name);
-            }
         }
 
         /// <inheritdoc/>
@@ -129,12 +102,43 @@ namespace CookingBot.Core.Services
         }
 
         /// <inheritdoc/>
-        public async Task SetConfigurationAsync(int maxListsPerUserMember, int maxListsPerUserAdvanced, CancellationToken ct)
+        public async Task SetConfigurationAsync(
+            int maxListsPerUserMember,
+            int maxListsPerUserAdvanced,
+            CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             _maxListsPerUserMember = maxListsPerUserMember;
             _maxListsPerUserAdvanced = maxListsPerUserAdvanced;
             await Task.CompletedTask;
+        }
+
+        /// <summary>Проверяет длину названия раздела; бросает исключение при превышении.</summary>
+        /// <param name="name">Название раздела.</param>
+        /// <exception cref="TaskLengthLimitException">Название длиннее MaxListNameLength.</exception>
+        private void CheckLengthLimits(string name)
+        {
+            if (name.Length > MaxListNameLength)
+            {
+                throw new TaskLengthLimitException(name.Length, MaxListNameLength);
+            }
+        }
+
+        /// <summary>
+        /// Проверяет, что у пользователя нет раздела с таким названием;
+        /// бросает исключение, если дубликат найден.
+        /// </summary>
+        /// <param name="userId">Идентификатор пользователя.</param>
+        /// <param name="name">Название раздела.</param>
+        /// <param name="ct">Токен отмены операции.</param>
+        /// <exception cref="DuplicateTaskException">Раздел с таким названием уже есть.</exception>
+        private async Task CheckDuplicateAsync(Guid userId, string name, CancellationToken ct)
+        {
+            var checkExist = await _toDoListRepository.ExistsByNameAsync(userId, name, ct);
+            if (checkExist)
+            {
+                throw new DuplicateTaskException(name);
+            }
         }
     }
 }

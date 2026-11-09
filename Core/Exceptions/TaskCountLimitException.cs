@@ -18,7 +18,8 @@ namespace CookingBot.Core.Exceptions
         /// Создаёт исключение для превышенного лимита рецептов.
         /// </summary>
         /// <param name="taskCountLimit">Максимально допустимое количество рецептов.</param>
-        public TaskCountLimitException(int taskCountLimit) : base($"Превышено максимальное количество задач: {taskCountLimit}.")
+        public TaskCountLimitException(int taskCountLimit) 
+            : base($"Превышено максимальное количество задач: {taskCountLimit}.")
         {
             TaskCountLimit = taskCountLimit;
         }

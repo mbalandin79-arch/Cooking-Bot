@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using CookingBot.Core.DataAccess;
 using CookingBot.Core.Entities;
+using static CookingBot.Core.Entities.ToDoItem;
 using LinqToDB;
 using LinqToDB.Async;
 
@@ -75,7 +76,10 @@ namespace CookingBot.Infrastructure.DataAccess
         }
 
         /// <inheritdoc/>
-        public async Task<IReadOnlyList<ToDoItem>> FindAsync(Guid userId, Func<ToDoItem, bool> predicate, CancellationToken ct)
+        public async Task<IReadOnlyList<ToDoItem>> FindAsync(
+            Guid userId, 
+            Func<ToDoItem, bool> predicate, 
+            CancellationToken ct)
         {
             var items = await GetAllByUserIdAsync(userId, ct);
 
@@ -85,7 +89,7 @@ namespace CookingBot.Infrastructure.DataAccess
         }
 
         /// <inheritdoc/>
-        public async Task<IReadOnlyList<ToDoItem>> FindByCategoryAsync(ToDoItem.MainCategory category, CancellationToken ct)
+        public async Task<IReadOnlyList<ToDoItem>> FindByCategoryAsync(MainCategory category, CancellationToken ct)
         {
             using var dbContext = _factory.CreateDataContext();
 

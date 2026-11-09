@@ -87,7 +87,10 @@ namespace CookingBot.Core.Services
         }
 
         /// <inheritdoc/>
-        public async Task<ToDoUser> RegisterUserAsync(long telegramUserId, string telegramUserName, CancellationToken ct)
+        public async Task<ToDoUser> RegisterUserAsync(
+            long telegramUserId, 
+            string telegramUserName, 
+            CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             var existUser = await _userRepository.GetUserByTelegramUserIdAsync(telegramUserId, ct);

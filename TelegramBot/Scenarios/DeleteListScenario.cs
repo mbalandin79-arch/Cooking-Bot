@@ -43,8 +43,11 @@ namespace CookingBot.TelegramBot.Scenarios
         }
 
         /// <inheritdoc/>
-        public async Task<ScenarioContext.ScenarioResult> HandleMessageAsync(ITelegramBotClient telegramBotClient,
-            ScenarioContext context, Update update, CancellationToken ct)
+        public async Task<ScenarioContext.ScenarioResult> HandleMessageAsync(
+            ITelegramBotClient telegramBotClient,
+            ScenarioContext context, 
+            Update update, 
+            CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             var chat = update.Message?.Chat ?? update.CallbackQuery?.Message?.Chat;

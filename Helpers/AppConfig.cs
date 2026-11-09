@@ -23,8 +23,13 @@ namespace CookingBot.Helpers
         /// </summary>
         /// <param name="settingsPath">Полный путь к appsettings.json.</param>
         /// <returns>Кортеж из шести лимитов.</returns>
-        public static (int maxTasksMember, int maxTasksAdvanced, int maxLengthTask, 
-            int maxListsPerUserMember, int maxListsPerUserAdvanced, int maxRecipesPerList) ReadLimits(string settingsPath)
+        public static (
+            int maxTasksMember, 
+            int maxTasksAdvanced, 
+            int maxLengthTask, 
+            int maxListsPerUserMember, 
+            int maxListsPerUserAdvanced, 
+            int maxRecipesPerList) ReadLimits(string settingsPath)
         {
             var json = File.ReadAllText(settingsPath);
             using var doc = JsonDocument.Parse(json);
@@ -57,7 +62,9 @@ namespace CookingBot.Helpers
         /// </summary>
         /// <param name="settingsPath">Полный путь к appsettings.json.</param>
         /// <returns>Кортеж: интервал запуска задачи сброса сценариев (ч) и таймаут сценария (ч).</returns>
-        public static (int resetScenarioRunIntervalHours, int resetScenarioTimeoutHours) ReadBackgroundTasks(string settingsPath)
+        public static (
+            int resetScenarioRunIntervalHours, 
+            int resetScenarioTimeoutHours) ReadBackgroundTasks(string settingsPath)
         {
             var json = File.ReadAllText(settingsPath);
             using var doc = JsonDocument.Parse(json);

@@ -28,8 +28,12 @@ namespace CookingBot.BackgroundTasks
         /// <param name="scenarioRepository">Репозиторий контекстов сценариев.</param>
         /// <param name="userService">Сервис пользователей: по роли подбирается клавиатура сообщения.</param>
         /// <param name="bot">Клиент Telegram для отправки сообщений пользователю.</param>
-        public ResetScenarioBackgroundTask(TimeSpan runInterval, TimeSpan resetScenarioTimeout, 
-            IScenarioContextRepository scenarioRepository, IUserService userService, ITelegramBotClient bot)
+        public ResetScenarioBackgroundTask(
+            TimeSpan runInterval, 
+            TimeSpan resetScenarioTimeout, 
+            IScenarioContextRepository scenarioRepository, 
+            IUserService userService, 
+            ITelegramBotClient bot)
             : base(runInterval, nameof(ResetScenarioBackgroundTask))
         {
             _resetScenarioTimeout = resetScenarioTimeout;

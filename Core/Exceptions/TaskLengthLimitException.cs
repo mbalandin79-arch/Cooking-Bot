@@ -21,7 +21,8 @@ namespace CookingBot.Core.Exceptions
         /// </summary>
         /// <param name="taskLength">Фактическая длина названия рецепта.</param>
         /// <param name="taskLengthLimit">Максимально допустимая длина названия рецепта.</param>
-        public TaskLengthLimitException(int taskLength, int taskLengthLimit) : base($"Длина задачи ({taskLength}) превышает максимально допустимое значение {taskLengthLimit}.")
+        public TaskLengthLimitException(int taskLength, int taskLengthLimit) 
+            : base($"Длина задачи ({taskLength}) превышает максимально допустимое значение {taskLengthLimit}.")
         {
             TaskLength = taskLength;
             TaskLengthLimit = taskLengthLimit;

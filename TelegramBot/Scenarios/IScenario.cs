@@ -33,6 +33,10 @@ namespace CookingBot.TelegramBot.Scenarios
         /// <param name="update">Входящее обновление от пользователя.</param>
         /// <param name="ct">Токен отмены операции.</param>
         /// <returns>Transition — сообщение обработано, сценарий продолжается; Completed — сценарий завершён.</returns>
-        Task<ScenarioResult> HandleMessageAsync(ITelegramBotClient telegramBotClient, ScenarioContext context, Update update, CancellationToken ct);
+        Task<ScenarioResult> HandleMessageAsync(
+            ITelegramBotClient telegramBotClient, 
+            ScenarioContext context, 
+            Update update, 
+            CancellationToken ct);
     }
 }

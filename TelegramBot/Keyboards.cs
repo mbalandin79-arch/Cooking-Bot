@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Linq;
+
 using CookingBot.Core.Entities;
 using CookingBot.Helpers;
 using CookingBot.TelegramBot.Dto;
+
+using static CookingBot.Core.Entities.ToDoUser;
+
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot.Types;
 
@@ -95,11 +99,11 @@ namespace CookingBot.TelegramBot
         /// </summary>
         /// <param name="state">Роль вызывающего (определяет набор кнопок).</param>
         /// <returns>Клавиатура меню администрирования.</returns>
-        public static InlineKeyboardMarkup BuildAdminMenuKeyboard(ToDoUser.ToDoUserState state)
+        public static InlineKeyboardMarkup BuildAdminMenuKeyboard(ToDoUserState state)
         {
             var rows = new List<List<InlineKeyboardButton>>();
 
-            rows.Add(new() { InlineKeyboardButton.WithCallbackData("Список пользователей", "mod_listusers") });           
+            rows.Add(new() { InlineKeyboardButton.WithCallbackData("Список пользователей", "mod_listusers") });
 
             if (state == ToDoUser.ToDoUserState.Admin)
             {
@@ -118,7 +122,7 @@ namespace CookingBot.TelegramBot
                     InlineKeyboardButton.WithCallbackData("Лимиты", "admin_limits")
                 });
             }
-            
+
             rows.Add(new() { InlineKeyboardButton.WithCallbackData("Назад", "mainmenu") });
 
             return new InlineKeyboardMarkup(rows);
@@ -193,8 +197,8 @@ namespace CookingBot.TelegramBot
         /// <returns>Клавиатура с кнопками разделов.</returns>
         public static InlineKeyboardMarkup BuildKeyboardDeleteListForUser(List<ToDoList> lists)
         {
-            var rows = lists.Select(list => new List<InlineKeyboardButton> 
-            { 
+            var rows = lists.Select(list => new List<InlineKeyboardButton>
+            {
                 InlineKeyboardButton.WithCallbackData(list.Name, new ToDoListCallbackDto
                 {
                     Action = "deletelist",
@@ -262,8 +266,8 @@ namespace CookingBot.TelegramBot
         /// <returns>Клавиатура выбора подкатегории.</returns>
         public static InlineKeyboardMarkup BuildListsKeyboard(IReadOnlyList<ToDoList> lists)
         {
-            var rows = new List<List<InlineKeyboardButton>> 
-            { 
+            var rows = new List<List<InlineKeyboardButton>>
+            {
                 new()
                 {
                     InlineKeyboardButton.WithCallbackData("Без подкатегории", new ToDoListCallbackDto
@@ -450,7 +454,9 @@ namespace CookingBot.TelegramBot
         /// <param name="users">Пользователи для показа.</param>
         /// <param name="callbackPrefix">Префикс callback-данных (какое действие выполняет кнопка).</param>
         /// <returns>Клавиатура списка пользователей.</returns>
-        public static InlineKeyboardMarkup BuildUserListKeyboard(IReadOnlyList<ToDoUser> users, string callbackPrefix)
+        public static InlineKeyboardMarkup BuildUserListKeyboard(
+            IReadOnlyList<ToDoUser> users, 
+            string callbackPrefix)
         {
             var rows = users.Select(u => new List<InlineKeyboardButton>
             {
@@ -470,7 +476,7 @@ namespace CookingBot.TelegramBot
         /// <param name="extraButton">Необязательная дополнительная кнопка внизу (например, "Посмотреть выполненные").</param>
         public static InlineKeyboardMarkup BuildPagedButtons(
             IReadOnlyList<KeyValuePair<string, string>> callbackData,
-            PagedListCallbackDto listDto, 
+            PagedListCallbackDto listDto,
             KeyValuePair<string, string>? extraButton = null)
         {
             int totalPages = (int)Math.Ceiling((double)callbackData.Count / _pageSize);

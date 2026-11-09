@@ -3,9 +3,13 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
 using CookingBot.Core.DataAccess;
 using CookingBot.Core.Entities;
 using CookingBot.Core.Exceptions;
+
+using static CookingBot.Core.Entities.ToDoItem;
+
 using Telegram.Bot.Types;
 
 namespace CookingBot.Core.Services
@@ -43,61 +47,15 @@ namespace CookingBot.Core.Services
             _toDoRepository = toDoRepository;
         }
 
-        /// <summary>
-        /// Проверяет лимит рецептов пользователя (лимит зависит от роли;
-        /// Moderator/Admin — без ограничений); бросает исключение при превышении.
-        /// </summary>
-        /// <param name="user">Пользователь, добавляющий рецепт.</param>
-        /// <param name="ct">Токен отмены операции.</param>
-        /// <exception cref="TaskCountLimitException">Достигнут лимит рецептов для роли пользователя.</exception>
-        private async Task CheckCountLimitAsync(ToDoUser user, CancellationToken ct)
-        {
-            if (user.State == ToDoUser.ToDoUserState.Moderator || user.State == ToDoUser.ToDoUserState.Admin)
-                return;
-
-            int limit = user.State == ToDoUser.ToDoUserState.Advanced ? _maxTasksAdvanced : _maxTasksMember;
-            var checkCount = await _toDoRepository.CountAsync(user.UserId, ct);
-            if (checkCount >= limit)
-                throw new TaskCountLimitException(limit);
-        }
-
-        /// <summary>Проверяет длину названия рецепта; бросает исключение при превышении.</summary>
-        /// <param name="name">Название рецепта.</param>
-        /// <exception cref="TaskLengthLimitException">Название длиннее допустимого.</exception>
-        private void CheckLengthLimits(string name)
-        {
-            if (name.Length > _maxLengthTask)
-            {
-                throw new TaskLengthLimitException(name.Length, _maxLengthTask);
-            }
-        }
-
-        /// <summary>
-        /// Проверяет, что у пользователя нет рецепта с таким названием;
-        /// бросает исключение, если дубликат найден.
-        /// </summary>
-        /// <param name="userId">Идентификатор пользователя.</param>
-        /// <param name="name">Название рецепта.</param>
-        /// <param name="ct">Токен отмены операции.</param>
-        /// <exception cref="DuplicateTaskException">Рецепт с таким названием уже есть.</exception>
-        private async Task CheckDuplicateAsync(Guid userId, string name, CancellationToken ct)
-        {
-            var checkExist = await _toDoRepository.ExistsByNameAsync(userId, name, ct);
-            if (checkExist)
-            {
-                throw new DuplicateTaskException(name);
-            }
-        }
-
         /// <inheritdoc/>
         public async Task<ToDoItem> AddAsync(
-            ToDoUser user, 
-            string name, 
-            ToDoItem.MainCategory category, 
-            List<string> ingredients, 
-            List<string> hiddenIngredients, 
-            List<string> steps, 
-            ToDoList? todoList, 
+            ToDoUser user,
+            string name,
+            ToDoItem.MainCategory category,
+            List<string> ingredients,
+            List<string> hiddenIngredients,
+            List<string> steps,
+            ToDoList? todoList,
             CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
@@ -156,10 +114,10 @@ namespace CookingBot.Core.Services
 
         /// <inheritdoc/>
         public async Task SetConfigurationAsync(
-            int maxTasksMember, 
-            int maxTasksAdvanced, 
-            int maxLengthTask, 
-            int maxRecipesPerList, 
+            int maxTasksMember,
+            int maxTasksAdvanced,
+            int maxLengthTask,
+            int maxRecipesPerList,
             CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
@@ -223,7 +181,7 @@ namespace CookingBot.Core.Services
         }
 
         /// <inheritdoc/>
-        public async Task<IReadOnlyList<ToDoItem>> FindByCategoryAsync(ToDoItem.MainCategory category, CancellationToken ct)
+        public async Task<IReadOnlyList<ToDoItem>> FindByCategoryAsync(MainCategory category, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             return await _toDoRepository.FindByCategoryAsync(category, ct);
@@ -237,15 +195,64 @@ namespace CookingBot.Core.Services
         }
 
         /// <inheritdoc/>
-        public async Task<IReadOnlyList<ToDoItem>> GetByUserIdAndList(Guid userId, Guid? listId, CancellationToken ct)
+        public async Task<IReadOnlyList<ToDoItem>> GetByUserIdAndList(
+            Guid userId,
+            Guid? listId,
+            CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
             var items = await _toDoRepository.GetAllByUserIdAsync(userId, ct);
 
-            if(listId == null)
+            if (listId == null)
                 return items;
 
             return items.Where(w => w.List?.Id == listId).ToList();
+        }
+
+        /// <summary>
+        /// Проверяет лимит рецептов пользователя (лимит зависит от роли;
+        /// Moderator/Admin — без ограничений); бросает исключение при превышении.
+        /// </summary>
+        /// <param name="user">Пользователь, добавляющий рецепт.</param>
+        /// <param name="ct">Токен отмены операции.</param>
+        /// <exception cref="TaskCountLimitException">Достигнут лимит рецептов для роли пользователя.</exception>
+        private async Task CheckCountLimitAsync(ToDoUser user, CancellationToken ct)
+        {
+            if (user.State == ToDoUser.ToDoUserState.Moderator || user.State == ToDoUser.ToDoUserState.Admin)
+                return;
+
+            int limit = user.State == ToDoUser.ToDoUserState.Advanced ? _maxTasksAdvanced : _maxTasksMember;
+            var checkCount = await _toDoRepository.CountAsync(user.UserId, ct);
+            if (checkCount >= limit)
+                throw new TaskCountLimitException(limit);
+        }
+
+        /// <summary>Проверяет длину названия рецепта; бросает исключение при превышении.</summary>
+        /// <param name="name">Название рецепта.</param>
+        /// <exception cref="TaskLengthLimitException">Название длиннее допустимого.</exception>
+        private void CheckLengthLimits(string name)
+        {
+            if (name.Length > _maxLengthTask)
+            {
+                throw new TaskLengthLimitException(name.Length, _maxLengthTask);
+            }
+        }
+
+        /// <summary>
+        /// Проверяет, что у пользователя нет рецепта с таким названием;
+        /// бросает исключение, если дубликат найден.
+        /// </summary>
+        /// <param name="userId">Идентификатор пользователя.</param>
+        /// <param name="name">Название рецепта.</param>
+        /// <param name="ct">Токен отмены операции.</param>
+        /// <exception cref="DuplicateTaskException">Рецепт с таким названием уже есть.</exception>
+        private async Task CheckDuplicateAsync(Guid userId, string name, CancellationToken ct)
+        {
+            var checkExist = await _toDoRepository.ExistsByNameAsync(userId, name, ct);
+            if (checkExist)
+            {
+                throw new DuplicateTaskException(name);
+            }
         }
     }
 }

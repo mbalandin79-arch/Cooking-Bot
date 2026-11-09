@@ -18,7 +18,8 @@ namespace CookingBot.Core.Exceptions
         /// Создаёт исключение для превышенного лимита разделов.
         /// </summary>
         /// <param name="listCountLimit">Максимально допустимое количество разделов.</param>
-        public ListCountLimitException(int listCountLimit) : base($"Превышено максимальное количество списков: {listCountLimit}.")
+        public ListCountLimitException(int listCountLimit) 
+            : base($"Превышено максимальное количество списков: {listCountLimit}.")
         {
             ListCountLimit = listCountLimit;
         }
